@@ -1,0 +1,364 @@
+---
+title: Config Commands
+description: Manage TUIOS configuration, keybindings, and shell completion
+---
+
+## tuios config edit
+
+Edit configuration in your default editor.
+
+```bash
+tuios config edit
+```
+
+Open the TUIOS configuration file in your default editor. The editor is determined by checking `$EDITOR`, `$VISUAL`, or common editors like vim, vi, nano, and emacs in that order.
+
+### Examples
+
+<CodeGroup>
+
+```bash Edit Config
+# Open config in default editor
+tuios config edit
+```
+
+```bash With Custom Editor
+# Set editor and open config
+export EDITOR=nano
+tuios config edit
+
+# Or use VISUAL
+export VISUAL=code
+tuios config edit
+```
+
+</CodeGroup>
+
+<Note>
+The configuration file is in TOML format. Changes take effect the next time you start TUIOS.
+</Note>
+
+---
+
+## tuios config path
+
+Print configuration file path.
+
+```bash
+tuios config path
+```
+
+Print the path to the TUIOS configuration file.
+
+### Examples
+
+<CodeGroup>
+
+```bash Show Path
+# Display config file location
+tuios config path
+```
+
+```bash Open in Editor
+# Open config file directly
+$EDITOR $(tuios config path)
+vim $(tuios config path)
+code $(tuios config path)
+```
+
+```bash Copy to Backup
+# Backup your configuration
+cp $(tuios config path) ~/tuios-config-backup.toml
+```
+
+</CodeGroup>
+
+### Example Output
+
+```
+/home/user/.config/tuios/config.toml
+```
+
+---
+
+## tuios config reset
+
+Reset configuration to defaults.
+
+```bash
+tuios config reset
+```
+
+Reset the TUIOS configuration file to default settings. This will overwrite your existing configuration after confirmation.
+
+### Examples
+
+<CodeGroup>
+
+```bash Reset Config
+# Reset to default configuration
+tuios config reset
+```
+
+</CodeGroup>
+
+<Warning>
+This will permanently overwrite your existing configuration. Make sure to back up your config file before resetting if you want to preserve custom settings.
+</Warning>
+
+<Tip>
+Before resetting, save a backup:
+```bash
+cp $(tuios config path) ~/tuios-config-backup.toml
+tuios config reset
+```
+</Tip>
+
+---
+
+## tuios keybinds list
+
+List all keybindings.
+
+```bash
+tuios keybinds list
+```
+
+Display all configured keybindings in a formatted table.
+
+### Aliases
+
+- `tuios keys list`
+- `tuios kb list`
+
+### Examples
+
+<CodeGroup>
+
+```bash List All Keybindings
+# Display all keybindings
+tuios keybinds list
+tuios keys list
+tuios kb list
+```
+
+```bash Search Keybindings
+# Find specific keybindings
+tuios keybinds list | grep window
+tuios keybinds list | grep workspace
+tuios keybinds list | grep tiling
+```
+
+```bash Save to File
+# Export keybindings reference
+tuios keybinds list > keybindings.txt
+```
+
+</CodeGroup>
+
+### Example Output
+
+```
+KEY BINDING          ACTION                    MODE                      DESCRIPTION
+ctrl+b               PrefixKey                 WindowManagement          Activate prefix mode
+ctrl+b,n             NewWindow                 WindowManagement          Create new window
+ctrl+b,q             Quit                      WindowManagement          Quit TUIOS
+i                    EnterTerminalMode         WindowManagement          Enter terminal mode
+Escape               EnterWindowMgmtMode       Terminal                  Enter window management mode
+alt+1                SwitchWorkspace1          WindowManagement/Terminal Switch to workspace 1
+alt+2                SwitchWorkspace2          WindowManagement/Terminal Switch to workspace 2
+t                    ToggleTiling              WindowManagement          Toggle tiling mode
+...
+```
+
+---
+
+## tuios keybinds list-custom
+
+List customized keybindings.
+
+```bash
+tuios keybinds list-custom
+```
+
+Display only keybindings that differ from defaults. Shows a comparison of default and custom keybindings.
+
+### Aliases
+
+- `tuios keys list-custom`
+- `tuios kb list-custom`
+
+### Examples
+
+<CodeGroup>
+
+```bash List Custom Keybindings
+# Show only customized keybindings
+tuios keybinds list-custom
+tuios keys list-custom
+tuios kb list-custom
+```
+
+</CodeGroup>
+
+### Example Output
+
+```
+CUSTOMIZED KEYBINDINGS
+
+ACTION               DEFAULT KEY          CUSTOM KEY
+NewWindow            ctrl+b,n             ctrl+t
+CloseWindow          ctrl+b,x             ctrl+w
+ToggleTiling         t                    ctrl+b,t
+
+No other customizations found.
+```
+
+<Tip>
+Use this command to quickly see which keybindings you've customized in your config file.
+</Tip>
+
+---
+
+## tuios completion
+
+Generate shell completion scripts.
+
+```bash
+tuios completion <shell>
+```
+
+Generate the autocompletion script for TUIOS for the specified shell.
+
+### Supported Shells
+
+- `bash`
+- `zsh`
+- `fish`
+- `powershell`
+
+### Examples
+
+<CodeGroup>
+
+```bash Bash
+# Generate bash completion
+tuios completion bash > /usr/local/etc/bash_completion.d/tuios
+
+# Or for user install
+tuios completion bash > ~/.local/share/bash-completion/completions/tuios
+
+# Source in current shell
+source <(tuios completion bash)
+```
+
+```bash Zsh
+# Generate zsh completion
+tuios completion zsh > "${fpath[1]}/_tuios"
+
+# Or add to .zshrc
+echo 'source <(tuios completion zsh)' >> ~/.zshrc
+
+# Source in current shell
+source <(tuios completion zsh)
+```
+
+```bash Fish
+# Generate fish completion
+tuios completion fish > ~/.config/fish/completions/tuios.fish
+
+# Source in current shell
+tuios completion fish | source
+```
+
+```bash PowerShell
+# Generate PowerShell completion
+tuios completion powershell > tuios.ps1
+
+# Add to profile
+tuios completion powershell >> $PROFILE
+```
+
+</CodeGroup>
+
+### Bash Installation (Detailed)
+
+<Steps>
+  <Step title="Generate completion script">
+    ```bash
+    tuios completion bash > /tmp/tuios-completion.bash
+    ```
+  </Step>
+  
+  <Step title="Install system-wide (requires sudo)">
+    ```bash
+    sudo cp /tmp/tuios-completion.bash /usr/local/etc/bash_completion.d/tuios
+    ```
+  </Step>
+  
+  <Step title="Or install for current user">
+    ```bash
+    mkdir -p ~/.local/share/bash-completion/completions
+    cp /tmp/tuios-completion.bash ~/.local/share/bash-completion/completions/tuios
+    ```
+  </Step>
+  
+  <Step title="Reload shell">
+    ```bash
+    source ~/.bashrc
+    # Or open a new terminal
+    ```
+  </Step>
+</Steps>
+
+### Zsh Installation (Detailed)
+
+<Steps>
+  <Step title="Find completion directory">
+    ```bash
+    echo $fpath[1]
+    # Usually /usr/local/share/zsh/site-functions or ~/.zsh/completions
+    ```
+  </Step>
+  
+  <Step title="Generate and install completion">
+    ```bash
+    tuios completion zsh > "${fpath[1]}/_tuios"
+    ```
+  </Step>
+  
+  <Step title="Rebuild completion cache">
+    ```bash
+    rm -f ~/.zcompdump
+    compinit
+    ```
+  </Step>
+  
+  <Step title="Or add to .zshrc for automatic loading">
+    ```bash
+    echo 'autoload -Uz compinit && compinit' >> ~/.zshrc
+    echo 'source <(tuios completion zsh)' >> ~/.zshrc
+    source ~/.zshrc
+    ```
+  </Step>
+</Steps>
+
+<Tip>
+After installing shell completion, you can press `Tab` to autocomplete TUIOS commands, flags, and arguments:
+
+```bash
+tuios <Tab>          # Shows all available commands
+tuios tape <Tab>     # Shows tape subcommands
+tuios --<Tab>        # Shows all flags
+```
+</Tip>
+
+---
+
+## Configuration File Reference
+
+For detailed information about all configuration options, see:
+
+- [Configuration Guide](/configuration/overview) - Complete TOML configuration reference
+- [Keybindings Reference](/cli/keybindings) - All available actions and default keybindings
+- [Themes](/configuration/themes) - Color theme configuration

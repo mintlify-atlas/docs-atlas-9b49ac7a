@@ -1,0 +1,490 @@
+---
+title: Tape Scripting
+description: Automate TUIOS workflows with the Tape DSL for CI/CD, demos, and testing
+---
+
+TUIOS Tape is a domain-specific language (DSL) for automating terminal window management workflows. Create reproducible scripts that can be played back, tested in CI/CD, or shared with your team.
+
+## Overview
+
+Tape scripts allow you to:
+
+- **Automate workflows**: Replay complex terminal operations with a single command
+- **Test integrations**: Verify TUIOS behavior in CI/CD pipelines
+- **Create demos**: Generate consistent presentations and tutorials
+- **Document processes**: Capture and share terminal workflows as executable code
+- **Remote execution**: Run scripts against live TUIOS sessions
+
+## Quick Start
+
+### Running Tape Scripts
+
+```bash
+# Interactive playback (watch it happen)
+tuios tape play demo.tape
+
+# Headless execution (for CI/CD)
+tuios tape run script.tape
+
+# Validate syntax without running
+tuios tape validate script.tape
+```
+
+### Your First Tape Script
+
+Create `hello.tape`:
+
+```tape
+# Create a window and run a command
+WindowManagementMode
+NewWindow
+Sleep 500ms
+
+TerminalMode
+Type "echo 'Hello from TUIOS!'"
+Enter
+Sleep 1s
+```
+
+Run it:
+
+```bash
+tuios tape play hello.tape
+```
+
+## Core Concepts
+
+### Modes
+
+TUIOS has two primary modes that determine how input is handled:
+
+#### Window Management Mode
+
+For managing windows, workspaces, and layouts:
+
+```tape
+WindowManagementMode
+NewWindow          # Create windows
+NextWindow         # Navigate between them
+EnableTiling       # Change layouts
+```
+
+#### Terminal Mode
+
+For sending input to the focused terminal:
+
+```tape
+TerminalMode
+Type "ls -la"     # Type text
+Enter              # Press Enter
+Ctrl+c             # Send signals
+```
+
+**Always switch modes explicitly before mode-specific actions.**
+
+### Timing
+
+Add pauses to let operations complete:
+
+```tape
+NewWindow
+Sleep 500ms        # Wait for window creation
+
+MinimizeWindow
+Sleep 300ms        # Wait for animation
+```
+
+Duration formats:
+- `500ms` - Milliseconds
+- `2s` - Seconds
+- `1.5s` - Decimal seconds
+- `1m` - Minutes
+
+## Command Reference
+
+### Window Operations
+
+```tape
+NewWindow                    # Create new terminal window
+CloseWindow                  # Close focused window
+NextWindow                   # Focus next window
+PrevWindow                   # Focus previous window
+RenameWindow "My Terminal"  # Rename focused window
+MinimizeWindow               # Minimize to dock
+RestoreWindow                # Restore from dock
+```
+
+### Workspace Management
+
+```tape
+SwitchWorkspace 2               # Switch to workspace 2 (1-9)
+MoveToWorkspace 3               # Move window without following
+MoveAndFollowWorkspace 2        # Move window and switch
+```
+
+### Layout & Tiling
+
+```tape
+ToggleTiling        # Toggle tiling on/off
+EnableTiling        # Explicitly enable
+DisableTiling       # Explicitly disable
+
+SnapLeft            # Snap to left half
+SnapRight           # Snap to right half
+SnapFullscreen      # Fullscreen
+```
+
+### Keyboard Input
+
+Requires Terminal Mode:
+
+```tape
+TerminalMode
+Type "command text"    # Type a string
+Enter                   # Press Enter
+Space                   # Press Space
+Tab                     # Press Tab
+Backspace               # Press Backspace
+Escape                  # Press Escape
+
+# Navigation keys
+Up
+Down
+Left
+Right
+Home
+End
+
+# Key combinations
+Ctrl+c
+Ctrl+Alt+t
+Shift+Tab
+```
+
+### Synchronization
+
+```tape
+Sleep 500ms                           # Fixed delay
+Wait 1s                               # Alias for Sleep
+WaitUntilRegex "pattern" 5000        # Wait for output (timeout in ms)
+```
+
+## Complete Examples
+
+### Development Environment Setup
+
+```tape
+# Create a tiled development environment
+WindowManagementMode
+EnableTiling
+Sleep 300ms
+
+# Editor window
+NewWindow
+Sleep 500ms
+TerminalMode
+Type "vim main.go"
+Enter
+Sleep 800ms
+
+# Build window
+WindowManagementMode
+NewWindow
+Sleep 500ms
+TerminalMode
+Type "go build -watch"
+Enter
+
+# Test window
+WindowManagementMode
+NewWindow
+Sleep 500ms
+TerminalMode
+Type "go test -v ./..."
+Enter
+```
+
+### Multi-Workspace Project
+
+```tape
+WindowManagementMode
+
+# Workspace 1: Coding
+SwitchWorkspace 1
+EnableTiling
+NewWindow
+TerminalMode
+Type "vim main.go"
+Enter
+Sleep 500ms
+
+WindowManagementMode
+NewWindow
+TerminalMode
+Type "go run ."
+Enter
+
+# Workspace 2: Testing
+WindowManagementMode
+SwitchWorkspace 2
+NewWindow
+TerminalMode
+Type "go test -v ./..."
+Enter
+
+# Workspace 3: Git
+WindowManagementMode
+SwitchWorkspace 3
+NewWindow
+TerminalMode
+Type "git status"
+Enter
+
+# Return to main workspace
+WindowManagementMode
+SwitchWorkspace 1
+```
+
+### Conditional Waiting
+
+```tape
+WindowManagementMode
+NewWindow
+Sleep 500ms
+
+TerminalMode
+# Start a long-running build
+Type "npm install"
+Enter
+
+# Wait for completion (up to 60 seconds)
+WaitUntilRegex "completed" 60000
+
+# Run after install
+Type "npm start"
+Enter
+```
+
+## Advanced Features
+
+### Remote Execution
+
+Execute tape scripts against a running TUIOS session:
+
+```bash
+# Execute against current session
+tuios tape exec script.tape
+
+# Execute against specific session
+tuios tape exec --session mysession script.tape
+tuios tape exec -s mysession script.tape
+```
+
+**Use cases:**
+
+**Automation pipelines:**
+```bash
+# Start session in background
+tuios new automation &
+sleep 2
+
+# Execute setup script
+tuios tape exec -s automation setup.tape
+
+# Run tests
+tuios tape exec -s automation test-workflow.tape
+```
+
+**Development workflows:**
+```bash
+# In terminal 1: Start TUIOS
+tuios new dev
+
+# In terminal 2: Send scripts to configure environment
+tuios tape exec -s dev environment-setup.tape
+```
+
+### Differences: `play` vs `exec`
+
+| Feature | `tape play` | `tape exec` |
+|---------|-------------|-------------|
+| Starts TUIOS | Yes | No (requires running session) |
+| Shows TUI | Yes | No (progress bar only) |
+| Interactive | Yes | No |
+| For automation | No | Yes |
+| Session persistence | No | Yes (works with daemon) |
+
+### Comments & Documentation
+
+```tape
+# Lines starting with # are comments
+# Use them to document your scripts
+
+# Setup section
+WindowManagementMode
+EnableTiling
+
+# Main workflow
+NewWindow
+Sleep 500ms
+```
+
+### String Literals
+
+Supports multiple quote styles:
+
+```tape
+Type "double quotes"
+Type 'single quotes'
+Type `backticks`
+
+# Escape sequences in double quotes
+Type "Line 1\nLine 2\tTabbed"
+```
+
+## Best Practices
+
+### 1. Always Add Sleep After Actions
+
+Give TUIOS time to process:
+
+```tape
+NewWindow
+Sleep 500ms    # ✓ Good
+
+MinimizeWindow
+Sleep 300ms    # ✓ Good
+```
+
+### 2. Explicit Mode Switching
+
+Always switch modes before mode-specific actions:
+
+```tape
+# ✓ GOOD
+WindowManagementMode
+NewWindow
+TerminalMode
+Type "ls"
+
+# ✗ BAD (mode might be wrong)
+NewWindow
+Type "ls"
+```
+
+### 3. Use Consistent Timing
+
+- Window creation: 500ms
+- Window navigation: 200ms
+- Animations: 300ms
+- Workspace switches: 400ms
+
+### 4. Document Complex Workflows
+
+```tape
+# Setup development environment
+WindowManagementMode
+EnableTiling
+
+# Create editor window
+NewWindow
+TerminalMode
+Type "vim main.go"
+Enter
+Sleep 800ms
+
+# Create build window
+WindowManagementMode
+NewWindow
+TerminalMode
+Type "go build -watch"
+Enter
+```
+
+### 5. Handle Long Operations
+
+Use longer timeouts for slow operations:
+
+```tape
+TerminalMode
+Type "npm install"
+Enter
+WaitUntilRegex "completed" 60000  # 60 second timeout
+```
+
+## Use Cases
+
+### CI/CD Testing
+
+Test TUIOS workflows in continuous integration:
+
+```bash
+#!/bin/bash
+# test.sh
+tuios tape run ci-test-suite.tape
+if [ $? -eq 0 ]; then
+    echo "Tests passed"
+else
+    echo "Tests failed"
+    exit 1
+fi
+```
+
+### Demo Creation
+
+Create consistent, repeatable demos:
+
+```bash
+tuios tape play conference-demo.tape
+```
+
+### Onboarding & Training
+
+Share executable workflows with new team members:
+
+```tape
+# onboarding.tape
+# Shows new developers how to set up the project
+
+WindowManagementMode
+NewWindow
+TerminalMode
+Type "git clone https://github.com/user/repo.git"
+Enter
+WaitUntilRegex "done" 30000
+
+Type "cd repo"
+Enter
+Type "make setup"
+Enter
+```
+
+### Documentation
+
+Embed tape scripts in docs for interactive examples.
+
+## Troubleshooting
+
+### Script Not Working?
+
+1. **Check mode**: Ensure you're in the correct mode
+2. **Add delays**: Increase `Sleep` durations
+3. **Validate syntax**: Run `tuios tape validate script.tape`
+4. **Test regex**: Verify `WaitUntilRegex` patterns match expected output
+
+### Common Errors
+
+**"Unknown command"**  
+Check spelling and capitalization (commands are case-sensitive)
+
+**"Unexpected token"**  
+Check for missing quotes around strings
+
+**"Timeout waiting for pattern"**  
+Increase timeout or verify regex pattern
+
+## See Also
+
+- [Tape Recording](/advanced/tape-recording) - Record live sessions to tape files
+- [CLI Reference](/cli/tape-commands) - Complete tape command reference
+- [GitHub Examples](https://github.com/Gaurav-Gosain/tuios/tree/main/examples) - Real-world tape scripts

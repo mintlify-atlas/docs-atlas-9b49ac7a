@@ -1,0 +1,343 @@
+---
+title: Tape Commands
+description: Manage and execute .tape automation scripts for TUIOS
+---
+
+## Overview
+
+Tape files allow you to automate interactions with TUIOS by specifying sequences of commands, key presses, and delays. Execute scripts in interactive mode (visible TUI) to watch automation happen in real-time.
+
+---
+
+## tuios tape play
+
+Run a tape file in interactive mode.
+
+```bash
+tuios tape play <file.tape> [flags]
+```
+
+Execute a tape script while displaying the TUIOS TUI. In interactive mode, you can see the automation happening in real-time in the terminal UI. Press `Ctrl+P` to pause/resume playback.
+
+### Arguments
+
+| Argument | Required | Description |
+|----------|----------|-------------|
+| `file.tape` | Yes | Path to the tape file to execute |
+
+### Flags
+
+| Flag | Short | Type | Default | Description |
+|------|-------|------|---------|-------------|
+| `--visible` | `-v` | boolean | `true` | Show TUI during playback |
+
+### Examples
+
+<CodeGroup>
+
+```bash Basic Playback
+# Run tape with visible TUI (watch it happen)
+tuios tape play demo.tape
+tuios tape play examples/advanced_demo.tape
+```
+
+```bash Control Visibility
+# Run with TUI visible (default)
+tuios tape play demo.tape --visible
+tuios tape play demo.tape -v
+```
+
+</CodeGroup>
+
+<Tip>
+Press `Ctrl+P` during playback to pause and resume the tape execution.
+</Tip>
+
+---
+
+## tuios tape validate
+
+Validate a tape file without running it.
+
+```bash
+tuios tape validate <file.tape>
+```
+
+Check if a tape file is syntactically correct before executing it.
+
+### Arguments
+
+| Argument | Required | Description |
+|----------|----------|-------------|
+| `file.tape` | Yes | Path to the tape file to validate |
+
+### Examples
+
+<CodeGroup>
+
+```bash Validate Syntax
+# Validate tape file syntax
+tuios tape validate demo.tape
+tuios tape validate examples/workflow.tape
+```
+
+</CodeGroup>
+
+### Example Output
+
+```bash
+# Valid tape file
+✓ demo.tape is valid
+
+# Invalid tape file
+✗ demo.tape has errors:
+  Line 5: unexpected token 'xyz'
+  Line 12: missing argument for Sleep command
+```
+
+---
+
+## tuios tape list
+
+List all saved tape recordings.
+
+```bash
+tuios tape list
+```
+
+Display all tape files in the TUIOS data directory.
+
+### Examples
+
+<CodeGroup>
+
+```bash List Recordings
+# List all saved tape recordings
+tuios tape list
+```
+
+</CodeGroup>
+
+### Example Output
+
+```
+TAPE NAME           SIZE      MODIFIED
+demo.tape          1.2 KB    2 hours ago
+workflow.tape      3.5 KB    1 day ago
+automation.tape    892 B     3 days ago
+```
+
+---
+
+## tuios tape dir
+
+Show the tape recordings directory path.
+
+```bash
+tuios tape dir
+```
+
+Print the path where tape recordings are stored.
+
+### Examples
+
+<CodeGroup>
+
+```bash Show Directory
+# Display tape recordings directory path
+tuios tape dir
+```
+
+</CodeGroup>
+
+### Example Output
+
+```
+/home/user/.local/share/tuios/tapes
+```
+
+---
+
+## tuios tape delete
+
+Delete a tape recording.
+
+```bash
+tuios tape delete <name>
+```
+
+Delete a tape file from the recordings directory.
+
+### Arguments
+
+| Argument | Required | Description |
+|----------|----------|-------------|
+| `name` | Yes | Name of the tape file to delete (with or without .tape extension) |
+
+### Examples
+
+<CodeGroup>
+
+```bash Delete Recording
+# Delete a tape recording
+tuios tape delete demo
+tuios tape delete demo.tape
+tuios tape delete old-workflow
+```
+
+</CodeGroup>
+
+<Warning>
+This permanently deletes the tape file. There is no undo.
+</Warning>
+
+---
+
+## tuios tape show
+
+Display the contents of a tape file.
+
+```bash
+tuios tape show <name>
+```
+
+Print the contents of a tape recording to stdout.
+
+### Arguments
+
+| Argument | Required | Description |
+|----------|----------|-------------|
+| `name` | Yes | Name of the tape file to display (with or without .tape extension) |
+
+### Examples
+
+<CodeGroup>
+
+```bash Show Contents
+# Display tape file contents
+tuios tape show demo
+tuios tape show demo.tape
+```
+
+```bash Pipe to Editor
+# Open tape in editor
+tuios tape show demo | vim -
+
+# Search tape contents
+tuios tape show demo | grep NewWindow
+```
+
+</CodeGroup>
+
+### Example Output
+
+```tape
+# Demo tape file
+NewWindow "Terminal 1"
+Sleep 500ms
+SendKeys "echo hello"
+SendKeys Enter
+Sleep 1s
+NewWindow "Terminal 2"
+```
+
+---
+
+## tuios tape exec
+
+Execute a tape file in a running session.
+
+```bash
+tuios tape exec <file.tape> [flags]
+```
+
+Execute a tape file in a running TUIOS session without starting a new instance. For single tape commands, use `tuios run-command <Command> [args...]` instead.
+
+### Arguments
+
+| Argument | Required | Description |
+|----------|----------|-------------|
+| `file.tape` | Yes | Path to the tape file to execute |
+
+### Flags
+
+| Flag | Short | Type | Default | Description |
+|------|-------|------|---------|-------------|
+| `--session` | `-s` | string | `""` | Target session (default: most recently active) |
+
+### Examples
+
+<CodeGroup>
+
+```bash Execute in Current Session
+# Execute tape file in the active session
+tuios tape exec demo.tape
+tuios tape exec ./examples/advanced_demo.tape
+```
+
+```bash Execute in Specific Session
+# Execute in a named session
+tuios tape exec --session mysession demo.tape
+tuios tape exec -s development workflow.tape
+```
+
+</CodeGroup>
+
+<Note>
+Unlike `tuios tape play`, this command executes the tape in an already-running session rather than starting a new TUIOS instance.
+</Note>
+
+---
+
+## Tape File Format
+
+Tape files use a simple scripting language to automate TUIOS. Here's a quick reference:
+
+### Basic Commands
+
+```tape
+# Create a new window
+NewWindow "Window Title"
+
+# Send keystrokes (to TUIOS)
+SendKeys "i"           # Enter terminal mode
+SendKeys "ctrl+b n"    # Prefix + new window
+SendKeys "$PREFIX q"   # Use configured prefix
+
+# Send text to terminal PTY
+SendKeysLiteral "echo hello world"
+SendKeysLiteral Enter
+
+# Add delays
+Sleep 500ms
+Sleep 1s
+Sleep 2.5s
+
+# Comments start with #
+# This is a comment
+```
+
+### Example Workflow
+
+```tape
+# Setup development environment
+NewWindow "Editor"
+Sleep 500ms
+SendKeysLiteral "vim main.go"
+SendKeysLiteral Enter
+Sleep 1s
+
+# Create terminal window
+SendKeys "ctrl+b n"  # New window
+Sleep 500ms
+NewWindow "Build"
+SendKeysLiteral "go build"
+SendKeysLiteral Enter
+
+# Switch to workspace 2
+SendKeys "alt+2"
+Sleep 500ms
+NewWindow "Tests"
+```
+
+For complete tape scripting documentation, see the [Tape Scripting Guide](/advanced/tape-scripting).

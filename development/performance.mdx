@@ -1,0 +1,460 @@
+---
+title: Performance Optimizations
+description: Understanding TUIOS's performance optimizations and tuning options
+---
+
+## Overview
+
+TUIOS implements several performance optimizations to maintain **60 FPS rendering** even with multiple windows and dynamic terminal content. Key techniques include style caching, viewport culling, memory pooling, and adaptive refresh rates.
+
+## Style Caching
+
+### How It Works
+
+**Location**: `internal/app/stylecache.go`
+
+The style cache dramatically reduces allocations by **reusing Lipgloss style objects**:
+
+```go
+type StyleCache struct {
+    mu      sync.RWMutex
+    cache   map[uint64]lipgloss.Style  // Hash -> Style
+    seed    maphash.Seed               // Hash seed
+    maxSize int                        // Max entries (default: 1024)
+    hits    atomic.Uint64              // Cache hits
+    misses  atomic.Uint64              // Cache misses
+    evicts  atomic.Uint64              // Evicted entries
+}
+```
+
+**Cache algorithm** (`stylecache.go:120-153`):
+
+1. **Hash cell attributes**: Combine FG, BG, bold, italic, cursor state
+2. **Cache lookup**: Check if style exists (read lock)
+3. **Return cached**: Return existing style on hit
+4. **Create and cache**: Build new style on miss, store in cache
+5. **Evict on full**: Remove half the entries when cache reaches max size
+
+### Performance Impact
+
+**Expected improvements**:
+
+| Scenario | Before | After | Improvement |
+|----------|--------|-------|-------------|
+| Vim editing | 15% CPU | 11% CPU | ~27% reduction |
+| htop running | 22% CPU | 19% CPU | ~14% reduction |
+| 4x windows idle | 8% CPU | 5% CPU | ~38% reduction |
+
+**Memory usage**:
+- 1024 entries ≈ 200 KB
+- 2048 entries ≈ 400 KB
+- 4096 entries ≈ 800 KB
+
+### Cache Statistics
+
+**View statistics**: Press `Ctrl+B, D, c` (debug prefix + cache stats)
+
+```
+Style Cache Statistics
+
+Hit Rate:      97.45%
+Cache Hits:    12,458
+Cache Misses:  321
+Evictions:     0
+
+Cache Size:    256 / 1024 entries
+Fill Rate:     25.0%
+```
+
+**Interpreting results**:
+
+- **95%+ hit rate**: Optimal performance
+- **85-95% hit rate**: Good, cache working well
+- **70-85% hit rate**: Fair, consider increasing cache size
+- **Below 70% hit rate**: Workload doesn't benefit from caching
+
+### Tuning Cache Size
+
+**Recommended sizes**:
+
+| Terminal Usage | Cache Size | Rationale |
+|----------------|------------|----------|
+| Basic shells | 512 | Low style diversity |
+| Text editors | 1024 (default) | Moderate diversity |
+| Syntax highlighting | 2048 | High color variety |
+| Multiple busy windows | 4096 | Many concurrent styles |
+
+**Change cache size**:
+
+Edit `internal/app/stylecache.go:231`:
+
+```go
+var globalStyleCache = NewStyleCache(2048) // Increase from 1024
+```
+
+Or programmatically:
+
+```go
+app.SetGlobalStyleCacheSize(2048)
+```
+
+## Viewport Culling
+
+### Window Visibility Check
+
+**Location**: `internal/app/render.go:57-64`
+
+Windows outside the visible viewport are **skipped entirely**:
+
+```go
+margin := 5 // Pixels of margin for animations
+isVisible := window.X+window.Width >= -margin &&
+             window.X <= viewportWidth+margin &&
+             window.Y+window.Height >= -margin &&
+             window.Y <= viewportHeight+margin
+
+if !isVisible {
+    continue // Skip rendering this window
+}
+```
+
+**Benefits**:
+- No VT buffer parsing for off-screen windows
+- No style application
+- No layer composition
+- Significant CPU savings with many windows
+
+### Partial Visibility Optimization
+
+**Location**: `internal/app/render.go:67-69`
+
+Partially visible windows use **lightweight rendering**:
+
+```go
+isFullyVisible := window.X >= 0 && window.Y >= topMargin &&
+                  window.X+window.Width <= viewportWidth &&
+                  window.Y+window.Height <= viewportHeight+topMargin
+
+if !isFullyVisible && !window.ContentDirty {
+    // Reuse cached layer for partially visible windows
+    layers = append(layers, window.CachedLayer)
+    continue
+}
+```
+
+## Adaptive Refresh Rates
+
+### Tick Rate Adjustment
+
+**Location**: `internal/app/update.go`
+
+TUIOS adjusts rendering frequency based on **activity level**:
+
+| State | Tick Rate | Use Case |
+|-------|-----------|----------|
+| Focused window active | 60 Hz | Interactive use (vim, shell) |
+| Background windows | 20 Hz | Monitoring (htop, logs) |
+| Drag/resize interaction | 30 Hz | Smooth mouse operations |
+| Idle (no changes) | Frame skip | No terminals updating |
+
+**Implementation**:
+
+```go
+func (m *OS) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+    switch msg := msg.(type) {
+    case TickerMsg:
+        hasChanges := m.MarkTerminalsWithNewContent()
+
+        if !hasChanges && !m.hasActiveAnimations() {
+            // No changes, skip render
+            m.renderSkipped = true
+            return m, nil
+        }
+
+        m.renderSkipped = false
+    }
+}
+```
+
+### Background Window Throttling
+
+**Location**: `internal/app/os.go:1170-1181`
+
+Background windows update **every 3rd tick** (~20Hz instead of 60Hz):
+
+```go
+for i, window := range m.Windows {
+    isFocused := i == m.FocusedWindow
+
+    if !isFocused {
+        window.UpdateCounter++
+        if window.UpdateCounter%3 == 0 {  // Every 3rd tick
+            window.MarkContentDirty()
+        }
+    } else {
+        window.MarkContentDirty()  // Every tick
+    }
+}
+```
+
+## Memory Pooling
+
+### Object Pools
+
+**Location**: `internal/pool/pool.go`
+
+Object pools **reuse allocations** to reduce GC pressure:
+
+```go
+var (
+    stringBuilderPool = sync.Pool{New: func() any { return &strings.Builder{} }}
+    byteSlicePool     = sync.Pool{New: func() any { buf := make([]byte, 32*1024); return &buf }}
+    layerPool         = sync.Pool{New: func() any { layers := make([]*lipgloss.Layer, 0, 16); return &layers }}
+    highlightGridPool = sync.Pool{New: func() any { return &HighlightGrid{} }}
+)
+```
+
+**Usage pattern**:
+
+```go
+// Get from pool
+sb := pool.GetStringBuilder()
+defer pool.PutStringBuilder(sb)
+
+// Use string builder
+sb.WriteString("Hello")
+result := sb.String()
+```
+
+### Pooled Types
+
+| Pool | Use Case | Size |
+|------|----------|------|
+| `StringBuilder` | Terminal content assembly | Variable |
+| `ByteSlice` | PTY I/O buffers | 32 KB |
+| `LayerSlice` | Layer composition | 16 layers |
+| `HighlightGrid` | Selection highlighting | Variable |
+
+**Benefits**:
+- Reduced allocations per frame
+- Lower GC pause times
+- Better memory locality
+
+## Frame Skipping
+
+### Idle Detection
+
+**Location**: `internal/app/os.go:108-109`
+
+TUIOS skips rendering when **no content changes** are detected:
+
+```go
+type OS struct {
+    idleFrames         int    // Consecutive frames with no changes
+    cachedViewContent  string // Last rendered output
+    renderSkipped      bool   // True when frame was skipped
+}
+```
+
+**Skip logic** (`internal/app/render.go:151-153`):
+
+```go
+func (m *OS) View() tea.View {
+    if m.renderSkipped && m.cachedViewContent != "" {
+        // No changes, return cached output
+        view.SetContent(m.cachedViewContent)
+        return view
+    }
+
+    // Changes detected, render fresh
+    content := m.GetCanvas(true).Render()
+    m.cachedViewContent = content
+    view.SetContent(content)
+    return view
+}
+```
+
+**Triggers for re-render**:
+- Terminal content change (new PTY output)
+- Active animations
+- User input (keyboard/mouse)
+- Mode change
+- Workspace switch
+
+## Content Caching
+
+### Window Layer Cache
+
+**Location**: `internal/app/render.go:83-86`
+
+Each window caches its **rendered layer**:
+
+```go
+if window.CachedLayer != nil && !window.Dirty && !window.ContentDirty {
+    // Reuse cached layer
+    layers = append(layers, window.CachedLayer)
+    continue
+}
+
+// Render fresh content
+content := m.renderTerminal(window, isFocused, ...)
+window.CachedLayer = lipgloss.NewLayer(content)
+    .X(window.X)
+    .Y(window.Y)
+    .Z(window.Z)
+```
+
+**Cache invalidation**:
+- **ContentDirty**: PTY output changed (new text)
+- **PositionDirty**: Window moved or resized
+- **Dirty**: Full invalidation (theme change, etc.)
+
+See `internal/terminal/window.go` for cache management.
+
+### Scrollback Optimization
+
+**Location**: `internal/vt/scrollback.go`
+
+Scrollback buffer uses **circular buffer** for efficient history:
+
+```go
+type Scrollback struct {
+    lines    []Line      // Fixed-size circular buffer
+    capacity int         // Max lines (default: 10,000)
+    head     int         // Write position
+    tail     int         // Read position
+}
+```
+
+**Benefits**:
+- O(1) append (no reallocation)
+- Fixed memory usage
+- Fast scrollback navigation
+
+## Z-Index Optimization
+
+### Layer Stacking
+
+**Location**: `internal/app/render.go:115-118`
+
+Windows are stacked by **priority**:
+
+```go
+zIndex := window.Z
+if isAnimating {
+    zIndex = config.ZIndexAnimating  // Top of stack
+}
+
+layer := lipgloss.NewLayer(content)
+    .X(window.X)
+    .Y(window.Y)
+    .Z(zIndex)  // Higher Z = drawn on top
+```
+
+**Z-index values**:
+
+| Window State | Z-Index |
+|--------------|----------|
+| Background windows | 0-(N-2) |
+| Focused window | N-1 |
+| Animating windows | 1000 |
+| Overlays (dock, help) | 2000+ |
+
+## Concurrency Optimizations
+
+### PTY Polling
+
+**Per-window goroutines** read from PTY without blocking the UI:
+
+```go
+go func() {
+    buf := make([]byte, 4096)
+    for {
+        select {
+        case <-ctx.Done():
+            return
+        default:
+            n, err := pty.Read(buf)
+            if err != nil { return }
+            vt.Write(buf[:n])  // Non-blocking VT update
+        }
+    }
+}()
+```
+
+**Benefits**:
+- Non-blocking I/O
+- Parallel terminal updates
+- Cancellable with context
+
+### Mutex Protection
+
+**Location**: `internal/app/os.go:105`
+
+Shared state uses **read-write locks**:
+
+```go
+type OS struct {
+    terminalMu sync.Mutex  // Protects Windows slice
+}
+
+func (m *OS) MarkTerminalsWithNewContent() bool {
+    m.terminalMu.Lock()
+    defer m.terminalMu.Unlock()
+
+    for _, window := range m.Windows {
+        if window.HasNewOutput.Swap(false) {
+            window.MarkContentDirty()
+        }
+    }
+}
+```
+
+## Performance Monitoring
+
+### Debug Overlays
+
+Press `Ctrl+B, D` to open debug menu:
+
+- `c`: Style cache statistics
+- `l`: Log viewer
+- `s`: System resource usage
+
+### Profiling
+
+Build with profiling enabled:
+
+```bash
+go build -tags profile -o tuios ./cmd/tuios
+./tuios --cpuprofile=cpu.prof
+```
+
+Analyze with `pprof`:
+
+```bash
+go tool pprof cpu.prof
+(pprof) top
+(pprof) list renderTerminal
+```
+
+## Best Practices
+
+### For Users
+
+1. **Limit dynamic windows**: Avoid running `btop` in 10+ windows simultaneously
+2. **Use minimization**: Minimize unused windows to skip rendering
+3. **Increase cache size**: If using heavy syntax highlighting (2048-4096)
+4. **Monitor statistics**: Check cache hit rate periodically
+
+### For Developers
+
+1. **Profile before optimizing**: Use `pprof` to find bottlenecks
+2. **Benchmark changes**: Use Go benchmarks to measure impact
+3. **Check cache stats**: Ensure optimizations improve hit rate
+4. **Avoid premature optimization**: Focus on algorithmic improvements first
+
+## Related Documentation
+
+- [Architecture](architecture) - Overall design
+- [Components](components) - Component details
+- [Configuration](/configuration/overview) - Performance settings

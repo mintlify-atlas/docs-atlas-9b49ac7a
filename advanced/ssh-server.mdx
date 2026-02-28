@@ -1,0 +1,446 @@
+---
+title: SSH Server
+description: Run TUIOS as an SSH server for remote terminal access
+---
+
+TUIOS can run as an SSH server, allowing remote connections to your terminal sessions. This enables remote access, shared sessions, and multi-user workflows.
+
+## Overview
+
+The SSH server mode provides:
+
+- **Remote Access**: Connect to TUIOS from anywhere over SSH
+- **Persistent Sessions**: Sessions survive disconnects and reconnects
+- **Multi-Client Support**: Multiple users can share or view the same session
+- **Daemon Integration**: Full integration with TUIOS session management
+- **Secure Authentication**: Standard SSH key-based authentication
+
+## Quick Start
+
+### Start SSH Server
+
+```bash
+# Start on default port (2222)
+tuios ssh
+
+# Start on custom port
+tuios ssh --port 2222
+
+# Bind to all interfaces (allow external connections)
+tuios ssh --host 0.0.0.0 --port 2222
+```
+
+### Connect from Client
+
+```bash
+# Connect to SSH server
+ssh -p 2222 user@localhost
+
+# Connect with specific session
+ssh -p 2222 user@localhost attach mysession
+```
+
+## Configuration
+
+### Command-Line Flags
+
+| Flag | Default | Description |
+|------|---------|-------------|
+| `--port` | `2222` | SSH server port |
+| `--host` | `localhost` | Server bind address |
+| `--key-path` | Auto-generated | Path to SSH host key |
+| `--default-session` | (none) | Default session name for all connections |
+| `--ephemeral` | `false` | Disable daemon mode (sessions don't persist) |
+
+### Host Key
+
+TUIOS automatically generates an SSH host key if not specified:
+
+**Default location:** `~/.ssh/tuios_host_key`
+
+To use a custom host key:
+
+```bash
+tuios ssh --key-path /path/to/custom_host_key
+```
+
+### Bind Address
+
+**Local only (default):**
+```bash
+tuios ssh --host localhost --port 2222
+```
+
+**Allow external connections:**
+```bash
+tuios ssh --host 0.0.0.0 --port 2222
+```
+
+<Warning>
+Binding to `0.0.0.0` allows connections from any network interface. Ensure proper firewall rules and authentication are in place.
+</Warning>
+
+## Session Management
+
+By default, TUIOS SSH uses **daemon mode** for persistent sessions.
+
+### Daemon Mode (Default)
+
+Connections attach to TUIOS daemon sessions:
+
+```bash
+# Start SSH server (daemon mode by default)
+tuios ssh --port 2222
+
+# Clients connect to persistent sessions
+ssh -p 2222 user@localhost
+```
+
+**Benefits:**
+- Sessions persist when SSH connections close
+- Multiple clients can view/share the same session
+- State (windows, workspaces) preserved across reconnections
+- Integrates with `tuios ls`, `tuios attach`, and other session commands
+
+### Session Selection Priority
+
+When a client connects, the session is determined by:
+
+1. **`--default-session` flag** (if specified on server)
+2. **SSH username** (if not generic like "tuios", "root", "anonymous")
+3. **SSH command argument** (e.g., `ssh host attach mysession`)
+4. **First available session** or create new
+
+**Example with default session:**
+
+```bash
+# Server: all connections use "shared" session
+tuios ssh --default-session shared
+
+# All clients connect to the same session
+ssh -p 2222 user@localhost
+```
+
+**Example with username-based sessions:**
+
+```bash
+# Server: uses SSH username as session name
+tuios ssh
+
+# Alice connects (creates/attaches to "alice" session)
+ssh -p 2222 alice@localhost
+
+# Bob connects (creates/attaches to "bob" session)
+ssh -p 2222 bob@localhost
+```
+
+### Ephemeral Mode
+
+Disable daemon mode for standalone sessions:
+
+```bash
+tuios ssh --ephemeral
+```
+
+**Behavior:**
+- Each connection gets a new TUIOS instance
+- Sessions terminate when SSH connection closes
+- No session persistence or sharing
+- Legacy behavior (pre-daemon)
+
+## Authentication
+
+TUIOS uses standard SSH authentication mechanisms.
+
+### Public Key Authentication
+
+Configure SSH keys as you would for any SSH server:
+
+**On client:**
+```bash
+# Generate SSH key if you don't have one
+ssh-keygen -t ed25519 -C "your_email@example.com"
+
+# Copy public key to server
+ssh-copy-id -p 2222 user@server
+
+# Connect
+ssh -p 2222 user@server
+```
+
+**On server:**
+
+Keys are stored in `~/.ssh/authorized_keys` as usual.
+
+### Password Authentication
+
+TUIOS uses the system's SSH authentication. If your system allows password authentication, it will work with TUIOS.
+
+<Note>
+Public key authentication is strongly recommended for security.
+</Note>
+
+## Multi-Client Sessions
+
+When multiple clients connect to the same session:
+
+### Terminal Size
+
+The terminal uses the **minimum dimensions** of all connected clients:
+
+- If Client A has 80x24 terminal
+- And Client B has 120x40 terminal
+- The shared session uses 80x24
+
+### State Synchronization
+
+All clients see the same state in real-time:
+
+- Window creation/deletion
+- Workspace switches
+- Terminal output
+- Layout changes
+
+### Input
+
+All clients can send input to the session. Coordinate usage to avoid conflicts.
+
+## Examples
+
+### Example 1: Personal Remote Access
+
+Access your TUIOS sessions from anywhere:
+
+**On server:**
+```bash
+# Start SSH server
+tuios ssh --host 0.0.0.0 --port 2222
+```
+
+**From laptop:**
+```bash
+# Connect and attach to work session
+ssh -p 2222 user@work-server attach work
+```
+
+### Example 2: Shared Team Session
+
+Multiple team members collaborate in real-time:
+
+**On server:**
+```bash
+# Start with shared default session
+tuios ssh --host 0.0.0.0 --port 2222 --default-session team-debug
+```
+
+**Team members connect:**
+```bash
+# Alice connects
+ssh -p 2222 alice@server
+
+# Bob connects (same session)
+ssh -p 2222 bob@server
+
+# Both see the same windows and output
+```
+
+### Example 3: Demo/Presentation Mode
+
+Run demos where audience members can view but not interact:
+
+**On presenter's machine:**
+```bash
+# Start SSH server
+tuios ssh --host 0.0.0.0 --port 2222 --default-session demo
+```
+
+**Audience members:**
+```bash
+# Connect and watch
+ssh -p 2222 viewer@presenter-host
+
+# All viewers see the same demo in real-time
+```
+
+### Example 4: Integrate with Web Terminal
+
+Combine SSH server with web terminal for browser access:
+
+**Terminal 1: Start SSH server**
+```bash
+tuios ssh --host localhost --port 2222 --default-session web
+```
+
+**Terminal 2: Start web terminal (if supported)**
+```bash
+# Connect tuios-web to SSH server session
+tuios-web --default-session web --port 7681
+```
+
+Users can now access via SSH or web browser, seeing the same session.
+
+## Advanced Usage
+
+### Custom Host Key
+
+Generate and use a custom host key:
+
+```bash
+# Generate host key
+ssh-keygen -t ed25519 -f ~/.ssh/tuios_custom_key -N ""
+
+# Use custom key
+tuios ssh --key-path ~/.ssh/tuios_custom_key
+```
+
+### Running as System Service
+
+Create a systemd service to run TUIOS SSH server automatically:
+
+**`/etc/systemd/system/tuios-ssh.service`:**
+```ini
+[Unit]
+Description=TUIOS SSH Server
+After=network.target
+
+[Service]
+Type=simple
+User=yourusername
+ExecStart=/usr/local/bin/tuios ssh --host 0.0.0.0 --port 2222
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
+```
+
+**Enable and start:**
+```bash
+sudo systemctl enable tuios-ssh
+sudo systemctl start tuios-ssh
+sudo systemctl status tuios-ssh
+```
+
+### Forwarding TUIOS Flags
+
+Pass TUIOS configuration flags through SSH command:
+
+```bash
+# Start with theme and features
+tuios ssh --port 2222 --theme dracula --show-keys --ascii-only
+```
+
+All TUIOS flags (theme, borders, etc.) are forwarded to spawned instances.
+
+## Security Considerations
+
+### Network Exposure
+
+**Local only (secure):**
+```bash
+tuios ssh --host localhost --port 2222
+```
+
+**External access (secure with proper setup):**
+```bash
+tuios ssh --host 0.0.0.0 --port 2222
+```
+
+<Warning>
+- Use strong SSH keys
+- Disable password authentication if possible
+- Use firewall rules to limit access
+- Keep TUIOS updated
+</Warning>
+
+### Authentication
+
+**Best practices:**
+- Use Ed25519 or RSA 4096-bit keys
+- Disable password authentication in SSH config
+- Use `authorized_keys` to control access
+- Consider using SSH certificates for large deployments
+
+### Firewall Configuration
+
+**Allow SSH port:**
+```bash
+# UFW
+sudo ufw allow 2222/tcp
+
+# iptables
+sudo iptables -A INPUT -p tcp --dport 2222 -j ACCEPT
+```
+
+**Limit to specific IPs:**
+```bash
+# UFW
+sudo ufw allow from 192.168.1.0/24 to any port 2222
+
+# iptables
+sudo iptables -A INPUT -p tcp -s 192.168.1.0/24 --dport 2222 -j ACCEPT
+```
+
+## Troubleshooting
+
+### Cannot Connect
+
+**Check server is running:**
+```bash
+ps aux | grep "tuios ssh"
+```
+
+**Check port is listening:**
+```bash
+ss -tuln | grep 2222
+```
+
+**Test connection:**
+```bash
+ssh -v -p 2222 user@localhost
+```
+
+### Host Key Verification Failed
+
+If the host key changed:
+
+```bash
+# Remove old host key
+ssh-keygen -R "[localhost]:2222"
+
+# Reconnect
+ssh -p 2222 user@localhost
+```
+
+### Permission Denied
+
+**Check authorized_keys:**
+```bash
+cat ~/.ssh/authorized_keys
+```
+
+**Ensure correct permissions:**
+```bash
+chmod 700 ~/.ssh
+chmod 600 ~/.ssh/authorized_keys
+```
+
+### Daemon Not Starting
+
+If daemon mode fails, SSH server falls back to ephemeral mode:
+
+```bash
+# Check daemon status
+tuios daemon status
+
+# Start daemon manually
+tuios daemon start
+
+# Check logs
+tuios logs
+```
+
+## See Also
+
+- [Session Management](/cli/session-management) - Managing TUIOS sessions
+- [Web Terminal](/advanced/web-terminal) - Browser-based access (tuios-web)
+- [CLI Reference](/cli/main-commands) - Complete SSH command reference

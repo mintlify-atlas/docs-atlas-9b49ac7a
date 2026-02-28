@@ -1,0 +1,359 @@
+---
+title: "Installation"
+description: "Install TUIOS on macOS, Linux, Windows, or FreeBSD using package managers, pre-built binaries, Docker, or build from source"
+---
+
+## System Requirements
+
+Before installing TUIOS, ensure your system meets these requirements:
+
+<CardGroup cols={2}>
+  <Card title="Terminal" icon="terminal">
+    A modern terminal emulator with true color support (most terminals since 2018)
+  </Card>
+  <Card title="Go Version" icon="code">
+    Go 1.24+ (only required if building from source)
+  </Card>
+</CardGroup>
+
+<Note>
+Recommended terminals: Kitty, Alacritty, iTerm2, Windows Terminal, Wezterm, or any terminal with true color support. Set `COLORTERM=truecolor` if colors aren't displaying correctly.
+</Note>
+
+## Installation Methods
+
+<Steps>
+  <Step title="Choose Your Installation Method">
+    Select the installation method that works best for your system and workflow. Package managers are recommended for easy updates.
+  </Step>
+
+  <Step title="Install TUIOS">
+    
+### Package Managers (Recommended)
+
+<CodeGroup>
+
+```bash Homebrew (macOS/Linux)
+# Install TUIOS terminal window manager
+brew install tuios
+
+# Install tuios-web (separate binary for web terminal server)
+brew install tuios-web
+```
+
+```bash Arch Linux (AUR)
+# Install TUIOS terminal window manager
+yay -S tuios-bin
+
+# Or using paru
+paru -S tuios-bin
+
+# Install tuios-web (separate binary for web terminal server)  
+yay -S tuios-web-bin
+```
+
+```bash Nix
+# Run directly without installing
+nix run github:Gaurav-Gosain/tuios#tuios
+
+# Or add to your configuration
+nix-shell -p tuios
+
+# For tuios-web
+nix run github:Gaurav-Gosain/tuios#tuios-web
+```
+
+```bash Quick Install Script (Linux/macOS)
+# One-line install script
+curl -fsSL https://raw.githubusercontent.com/Gaurav-Gosain/tuios/main/install.sh | bash
+```
+
+```bash Go Install
+# Install TUIOS main binary
+go install github.com/Gaurav-Gosain/tuios/cmd/tuios@latest
+
+# Install tuios-web binary  
+go install github.com/Gaurav-Gosain/tuios/cmd/tuios-web@latest
+
+# Ensure $GOPATH/bin is in your PATH
+export PATH="$PATH:$(go env GOPATH)/bin"
+```
+
+</CodeGroup>
+
+### Pre-built Binaries
+
+Download pre-built binaries for your platform from [GitHub Releases](https://github.com/Gaurav-Gosain/tuios/releases).
+
+Available for:
+- Linux (amd64, arm64, armv6, armv7)
+- macOS (amd64, arm64)
+- Windows (amd64, arm64)  
+- FreeBSD (amd64, arm64)
+
+Each release includes both `tuios` and `tuios-web` binaries.
+
+```bash
+# Example: Install on Linux (replace with latest version)
+wget https://github.com/Gaurav-Gosain/tuios/releases/download/v0.3.4/tuios_Linux_x86_64.tar.gz
+tar -xzf tuios_Linux_x86_64.tar.gz
+sudo mv tuios /usr/local/bin/
+sudo chmod +x /usr/local/bin/tuios
+```
+
+### Docker
+
+Run TUIOS in a container without installation:
+
+```bash
+docker run -it --rm ghcr.io/gaurav-gosain/tuios:latest
+```
+
+<Warning>
+Docker mode runs TUIOS in an isolated container. Sessions won't persist after the container exits unless you mount volumes.
+</Warning>
+
+### Build from Source
+
+For the latest development version or custom builds:
+
+```bash
+# Clone the repository
+git clone https://github.com/Gaurav-Gosain/tuios.git
+cd tuios
+
+# Build TUIOS main binary
+go build -o tuios ./cmd/tuios
+
+# Build tuios-web binary
+go build -o tuios-web ./cmd/tuios-web
+
+# Run the binary
+./tuios
+
+# Or install to $GOPATH/bin
+go install ./cmd/tuios
+go install ./cmd/tuios-web
+```
+
+<Tip>
+Use Nix for reproducible development environments: `nix develop` to enter a shell with all dependencies, or `nix build` to build the package.
+</Tip>
+
+  </Step>
+
+  <Step title="Verify Installation">
+    Confirm TUIOS is installed correctly:
+
+```bash
+# Check version
+tuios --version
+
+# Should output something like:
+# tuios version v0.3.4
+```
+
+<CodeGroup>
+
+```bash Verify tuios
+which tuios
+# Should show the installation path
+```
+
+```bash Verify tuios-web (optional)
+which tuios-web  
+tuios-web --version
+```
+
+</CodeGroup>
+
+  </Step>
+
+  <Step title="Optional: Set Up Shell Completions">
+    Enable tab completion for your shell:
+
+<CodeGroup>
+
+```bash Bash
+tuios completion bash > /etc/bash_completion.d/tuios
+# Or for user-only installation:
+tuios completion bash > ~/.local/share/bash-completion/completions/tuios
+```
+
+```bash Zsh  
+tuios completion zsh > "${fpath[1]}/_tuios"
+# Or add to your .zshrc:
+tuios completion zsh > ~/.zsh/completions/_tuios
+```
+
+```bash Fish
+tuios completion fish > ~/.config/fish/completions/tuios.fish
+```
+
+```powershell PowerShell
+tuios completion powershell > tuios.ps1
+# Then source it in your profile
+```
+
+</CodeGroup>
+
+  </Step>
+
+  <Step title="Optional: Configure Terminal">
+    For the best experience, ensure your terminal supports:
+
+- **True Color**: Set `export COLORTERM=truecolor` in your shell profile
+- **Nerd Fonts** (optional): Install a [Nerd Font](https://www.nerdfonts.com/) for icons (or use `--ascii-only` flag)
+- **Mouse Support**: Should work by default in most modern terminals
+
+```bash
+# Add to ~/.bashrc, ~/.zshrc, or equivalent
+export COLORTERM=truecolor
+```
+
+  </Step>
+</Steps>
+
+## Understanding the Binaries
+
+TUIOS provides two separate binaries:
+
+<CardGroup cols={2}>
+  <Card title="tuios" icon="terminal">
+    **Main Binary**
+    
+    The core terminal window manager. This is what you'll use for local terminal sessions, daemon mode, SSH server, and tape scripting.
+    
+    Use this for: Daily terminal work, local sessions, automation
+  </Card>
+  
+  <Card title="tuios-web" icon="globe">
+    **Web Terminal Server**
+    
+    A separate binary that serves TUIOS through a web browser. Provides WebGL rendering, WebTransport/WebSocket support, and bundled Nerd Fonts.
+    
+    Use this for: Remote access via browser, demos, accessing TUIOS from devices without SSH
+  </Card>
+</CardGroup>
+
+<Note>
+The two binaries are separate for security isolation. You can install just `tuios` if you don't need web terminal functionality.
+</Note>
+
+## Installation Verification
+
+Run a quick test to ensure everything works:
+
+```bash
+# Launch TUIOS
+tuios
+
+# You should see the TUIOS interface with:
+# - A dockbar at the bottom showing "Window 1"
+# - A welcome message or your default shell
+# - Status indicators in the corners
+```
+
+**Test basic operations:**
+
+1. Press `n` to create a new window (should see "Window 2")
+2. Press `Tab` to switch between windows  
+3. Press `?` to see the help overlay with keybindings
+4. Press `q` to quit TUIOS
+
+<Tip>
+If colors aren't displaying correctly, try setting `export COLORTERM=truecolor` in your shell profile and restart your terminal.
+</Tip>
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Colors not displaying correctly">
+    **Solution:** Set the `COLORTERM` environment variable:
+    
+    ```bash
+    export COLORTERM=truecolor
+    ```
+    
+    Add this to your shell profile (~/.bashrc, ~/.zshrc, etc.) to make it permanent.
+  </Accordion>
+  
+  <Accordion title="Icons showing as boxes or question marks">
+    **Solution:** Either install a [Nerd Font](https://www.nerdfonts.com/) or run TUIOS with ASCII-only mode:
+    
+    ```bash
+    tuios --ascii-only
+    ```
+  </Accordion>
+  
+  <Accordion title="Go install command not found">
+    **Solution:** Ensure `$GOPATH/bin` is in your PATH:
+    
+    ```bash
+    export PATH="$PATH:$(go env GOPATH)/bin"
+    ```
+    
+    Add this to your shell profile to make it permanent.
+  </Accordion>
+  
+  <Accordion title="Permission denied when running binary">
+    **Solution:** Make the binary executable:
+    
+    ```bash
+    chmod +x /path/to/tuios
+    ```
+  </Accordion>
+  
+  <Accordion title="Homebrew installation fails">
+    **Solution:** Update Homebrew and try again:
+    
+    ```bash
+    brew update
+    brew upgrade
+    brew install tuios
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Next Steps
+
+Now that TUIOS is installed, continue to the Quick Start guide to learn the essential keybindings and workflows:
+
+<Card title="Quick Start Guide" icon="rocket" href="/quickstart">
+  Get up and running with TUIOS in 5 minutes
+</Card>
+
+## Additional Resources
+
+- **Configuration**: Learn how to customize keybindings and settings
+- **CLI Reference**: Complete command-line options and flags  
+- **Keybindings**: Full keyboard shortcut reference
+- **Architecture**: Technical architecture and design details
+
+## Updates
+
+Keep TUIOS up to date:
+
+<CodeGroup>
+
+```bash Homebrew
+brew upgrade tuios
+brew upgrade tuios-web
+```
+
+```bash AUR  
+yay -Syu tuios-bin
+yay -Syu tuios-web-bin
+```
+
+```bash Go Install
+go install github.com/Gaurav-Gosain/tuios/cmd/tuios@latest
+go install github.com/Gaurav-Gosain/tuios/cmd/tuios-web@latest  
+```
+
+```bash Nix
+nix flake update
+nix build
+```
+
+</CodeGroup>

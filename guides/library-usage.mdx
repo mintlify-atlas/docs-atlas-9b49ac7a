@@ -1,0 +1,795 @@
+---
+title: "Library Usage"
+description: "Using TUIOS as a Go library in your applications"
+icon: "book"
+---
+
+## Overview
+
+TUIOS can be **embedded as a library** in your Go applications. The `pkg/tuios` package provides a clean API to integrate the terminal window manager into Bubble Tea apps, web terminals, SSH servers, and more.
+
+<Info>
+The library API is stable and designed for embedding. It exposes only the public interface from `pkg/tuios/tuios.go`.
+</Info>
+
+---
+
+## Installation
+
+```bash
+go get github.com/Gaurav-Gosain/tuios/pkg/tuios
+```
+
+**Import:**
+```go
+import "github.com/Gaurav-Gosain/tuios/pkg/tuios"
+```
+
+---
+
+## Basic Usage
+
+### Minimal Example
+
+```go
+package main
+
+import (
+	"log"
+	"os"
+
+	tea "charm.land/bubbletea/v2"
+	"github.com/Gaurav-Gosain/tuios/pkg/tuios"
+)
+
+func main() {
+	// Create TUIOS model with defaults
+	model := tuios.New()
+
+	// Create Bubble Tea program
+	p := tea.NewProgram(
+		model,
+		tuios.ProgramOptions()...,
+	)
+
+	// Run the TUI
+	if _, err := p.Run(); err != nil {
+		log.Fatal(err)
+	}
+}
+```
+
+This gives you a full TUIOS window manager in ~10 lines of code.
+
+---
+
+## Configuration Options
+
+### Using Functional Options
+
+Customize TUIOS behavior with options:
+
+```go
+model := tuios.New(
+	tuios.WithTheme("dracula"),
+	tuios.WithShowKeys(true),
+	tuios.WithAnimations(false),
+	tuios.WithWorkspaces(9),
+	tuios.WithBorderStyle("rounded"),
+	tuios.WithDockbarPosition("top"),
+)
+```
+
+### Available Options
+
+#### Theme
+
+```go
+tuios.WithTheme("dracula")
+tuios.WithTheme("nord")
+tuios.WithTheme("tokyonight")
+tuios.WithTheme("")  // Use terminal colors
+```
+
+<Tip>
+Leave theme empty to use the user's terminal color scheme.
+</Tip>
+
+#### ShowKeys Overlay
+
+```go
+tuios.WithShowKeys(true)   // Display pressed keys
+tuios.WithShowKeys(false)  // Hide overlay
+```
+
+#### Animations
+
+```go
+tuios.WithAnimations(true)   // Smooth transitions
+tuios.WithAnimations(false)  // Instant snapping
+```
+
+#### ASCII-Only Mode
+
+```go
+tuios.WithASCIIOnly(true)   // No Nerd Font icons
+tuios.WithASCIIOnly(false)  // Use icons (default)
+```
+
+#### Workspaces
+
+```go
+tuios.WithWorkspaces(9)  // 1-9 workspaces
+tuios.WithWorkspaces(5)  // Limit to 5
+```
+
+Valid range: 1-9.
+
+#### Border Style
+
+```go
+tuios.WithBorderStyle("rounded")
+tuios.WithBorderStyle("normal")
+tuios.WithBorderStyle("thick")
+tuios.WithBorderStyle("double")
+tuios.WithBorderStyle("hidden")
+tuios.WithBorderStyle("block")
+tuios.WithBorderStyle("ascii")
+```
+
+#### Dockbar Position
+
+```go
+tuios.WithDockbarPosition("bottom")
+tuios.WithDockbarPosition("top")
+tuios.WithDockbarPosition("hidden")
+```
+
+#### Window Buttons
+
+```go
+tuios.WithHideWindowButtons(true)   // No minimize/maximize/close
+tuios.WithHideWindowButtons(false)  // Show buttons
+```
+
+#### Scrollback Buffer
+
+```go
+tuios.WithScrollbackLines(10000)  // Default
+tuios.WithScrollbackLines(50000)  // Large buffer
+```
+
+Valid range: 100 - 1,000,000 lines.
+
+#### Initial Size
+
+```go
+tuios.WithSize(120, 40)  // 120 cols x 40 rows
+```
+
+Leave at 0 to auto-detect from terminal.
+
+#### SSH Mode
+
+```go
+tuios.WithSSHMode(true)   // Running over SSH
+tuios.WithSSHMode(false)  // Local terminal
+```
+
+#### Custom User Config
+
+```go
+import "github.com/Gaurav-Gosain/tuios/internal/config"
+
+userConfig, _ := config.LoadUserConfig()
+tuios.WithUserConfig(userConfig)
+```
+
+---
+
+## Using with sip (Web Terminal)
+
+[sip](https://github.com/charmbracelet/sip) serves Bubble Tea apps as web applications. TUIOS integrates seamlessly.
+
+### Basic Web Terminal
+
+```go
+package main
+
+import (
+	"context"
+	"log"
+
+	tea "charm.land/bubbletea/v2"
+	"github.com/charmbracelet/sip"
+	"github.com/Gaurav-Gosain/tuios/pkg/tuios"
+)
+
+func main() {
+	server := sip.NewServer(sip.DefaultConfig())
+
+	server.Serve(context.Background(), func(sess sip.Session) (tea.Model, []tea.ProgramOption) {
+		// Create TUIOS for this web session
+		model := tuios.NewForPTY(
+			sess.Pty(),
+			tuios.WithTheme("dracula"),
+		)
+
+		return model, tuios.ProgramOptions()
+	})
+
+	log.Println("Web terminal running at http://localhost:8080")
+	if err := server.Start(":8080"); err != nil {
+		log.Fatal(err)
+	}
+}
+```
+
+Now users can access TUIOS in their browser at `http://localhost:8080`.
+
+### Advanced Web Setup
+
+```go
+package main
+
+import (
+	"context"
+	"log"
+	"os"
+
+	tea "charm.land/bubbletea/v2"
+	"github.com/charmbracelet/sip"
+	"github.com/Gaurav-Gosain/tuios/pkg/tuios"
+)
+
+func main() {
+	cfg := sip.DefaultConfig()
+	cfg.Host = "0.0.0.0"
+	cfg.Port = 3000
+	cfg.KeyPath = "server.key"
+	cfg.CertPath = "server.crt"
+
+	server := sip.NewServer(cfg)
+
+	server.Serve(context.Background(), func(sess sip.Session) (tea.Model, []tea.ProgramOption) {
+		// PTY provides terminal dimensions
+		pty := sess.Pty()
+
+		// Create TUIOS with web-specific settings
+		model := tuios.NewForPTY(
+			pty,
+			tuios.WithTheme(""),  // Use browser terminal colors
+			tuios.WithAnimations(true),
+			tuios.WithScrollbackLines(20000),
+			tuios.WithASCIIOnly(false),
+		)
+
+		opts := tuios.ProgramOptions()
+		opts = append(opts, tea.WithFilter(tuios.FilterMouseMotion))
+
+		return model, opts
+	})
+
+	log.Printf("TUIOS web terminal: https://0.0.0.0:%d", cfg.Port)
+	if err := server.Start(); err != nil {
+		log.Fatal(err)
+	}
+}
+```
+
+---
+
+## SSH Server Integration
+
+Embed TUIOS in an SSH server using [Wish](https://github.com/charmbracelet/wish).
+
+### Basic SSH Server
+
+```go
+package main
+
+import (
+	"context"
+	"log"
+	"os"
+	"os/signal"
+	"syscall"
+	"time"
+
+	tea "charm.land/bubbletea/v2"
+	"charm.land/wish/v2"
+	"charm.land/wish/v2/bubbletea"
+	"github.com/Gaurav-Gosain/tuios/pkg/tuios"
+)
+
+func main() {
+	server, err := wish.NewServer(
+		wish.WithAddress(":2222"),
+		wish.WithHostKeyPath(".ssh/tuios_host_key"),
+		wish.WithMiddleware(
+			bubbletea.Middleware(teaHandler),
+		),
+	)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	done := make(chan os.Signal, 1)
+	signal.Notify(done, os.Interrupt, syscall.SIGTERM)
+
+	log.Printf("TUIOS SSH server listening on :2222")
+	log.Println("Connect with: ssh localhost -p 2222")
+
+	go func() {
+		if err := server.ListenAndServe(); err != nil {
+			log.Fatal(err)
+		}
+	}()
+
+	<-done
+	log.Println("Shutting down...")
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	server.Shutdown(ctx)
+}
+
+func teaHandler(sess wish.Session) (tea.Model, []tea.ProgramOption) {
+	pty := sess.Pty()
+
+	model := tuios.NewForPTY(
+		pty,
+		tuios.WithSSHMode(true),
+		tuios.WithTheme("dracula"),
+	)
+
+	return model, tuios.ProgramOptions()
+}
+```
+
+Users can now SSH in and get a TUIOS session:
+
+```bash
+ssh localhost -p 2222
+```
+
+---
+
+## Advanced API
+
+### PTY Interface
+
+The `NewForPTY` function accepts any type implementing:
+
+```go
+type PTY interface {
+	Width() int
+	Height() int
+}
+```
+
+This works with:
+- `sip.Session.Pty()`
+- `wish.Session.Pty()`
+- Custom PTY implementations
+
+### Program Options
+
+`ProgramOptions()` returns recommended `tea.ProgramOption` values:
+
+```go
+opts := tuios.ProgramOptions()
+// Returns: []tea.ProgramOption{
+//     tea.WithFPS(60),
+// }
+
+p := tea.NewProgram(model, opts...)
+```
+
+You can add your own:
+
+```go
+opts := tuios.ProgramOptions()
+opts = append(opts,
+	tea.WithFilter(tuios.FilterMouseMotion),
+	tea.WithoutSignalHandler(),
+)
+
+p := tea.NewProgram(model, opts...)
+```
+
+### Mouse Motion Filtering
+
+`FilterMouseMotion` reduces CPU usage by filtering redundant mouse events:
+
+```go
+p := tea.NewProgram(
+	model,
+	tea.WithFilter(tuios.FilterMouseMotion),
+)
+```
+
+It passes through mouse motion only during:
+- Window dragging
+- Window resizing
+- Scrollback selection
+- Terminal mode mouse interactions (e.g., vim)
+
+All other mouse motion is filtered, reducing CPU load by 40-60%.
+
+### Mode Constants
+
+Access TUIOS modes:
+
+```go
+import "github.com/Gaurav-Gosain/tuios/pkg/tuios"
+
+switch model.Mode {
+case tuios.WindowManagementMode:
+	fmt.Println("In window mode")
+case tuios.TerminalMode:
+	fmt.Println("In terminal mode")
+}
+```
+
+### Config Loading
+
+Load and apply user configuration:
+
+```go
+// Load user's config file
+userConfig, err := tuios.Config.LoadUserConfig()
+if err != nil {
+	userConfig = tuios.Config.DefaultConfig()
+}
+
+// Get config file path
+configPath, _ := tuios.Config.GetConfigPath()
+fmt.Println("Config:", configPath)
+
+// Create TUIOS with config
+model := tuios.New(
+	tuios.WithUserConfig(userConfig),
+)
+```
+
+---
+
+## Real-World Examples
+
+### Custom Wrapper CLI
+
+```go
+// cmd/myapp/main.go
+package main
+
+import (
+	"fmt"
+	"log"
+	"os"
+
+	tea "charm.land/bubbletea/v2"
+	"github.com/Gaurav-Gosain/tuios/pkg/tuios"
+	"github.com/spf13/cobra"
+)
+
+func main() {
+	var theme string
+	var workspaces int
+
+	rootCmd := &cobra.Command{
+		Use:   "myapp",
+		Short: "My custom TUIOS wrapper",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			model := tuios.New(
+				tuios.WithTheme(theme),
+				tuios.WithWorkspaces(workspaces),
+				tuios.WithBorderStyle("thick"),
+				tuios.WithDockbarPosition("top"),
+			)
+
+			p := tea.NewProgram(model, tuios.ProgramOptions()...)
+			_, err := p.Run()
+			return err
+		},
+	}
+
+	rootCmd.Flags().StringVar(&theme, "theme", "dracula", "Color theme")
+	rootCmd.Flags().IntVar(&workspaces, "workspaces", 9, "Number of workspaces")
+
+	if err := rootCmd.Execute(); err != nil {
+		log.Fatal(err)
+	}
+}
+```
+
+### Development Container
+
+Embed TUIOS in a devcontainer:
+
+```go
+// internal/devenv/tuios.go
+package devenv
+
+import (
+	tea "charm.land/bubbletea/v2"
+	"github.com/Gaurav-Gosain/tuios/pkg/tuios"
+)
+
+func StartDevEnvironment() error {
+	model := tuios.New(
+		tuios.WithTheme("tokyonight"),
+		tuios.WithWorkspaces(5),
+		tuios.WithScrollbackLines(50000),
+	)
+
+	// Start with dev-specific settings
+	p := tea.NewProgram(
+		model,
+		tuios.ProgramOptions()...,
+	)
+
+	_, err := p.Run()
+	return err
+}
+```
+
+### Multi-User Server
+
+```go
+package main
+
+import (
+	"context"
+	"fmt"
+	"log"
+
+	tea "charm.land/bubbletea/v2"
+	"charm.land/wish/v2"
+	"charm.land/wish/v2/bubbletea"
+	"github.com/Gaurav-Gosain/tuios/pkg/tuios"
+)
+
+func main() {
+	server, _ := wish.NewServer(
+		wish.WithAddress(":2222"),
+		wish.WithMiddleware(
+			bubbletea.Middleware(func(sess wish.Session) (tea.Model, []tea.ProgramOption) {
+				// Per-user theme from environment
+				username := sess.User()
+				theme := getUserTheme(username)
+
+				model := tuios.NewForPTY(
+					sess.Pty(),
+					tuios.WithTheme(theme),
+					tuios.WithSSHMode(true),
+				)
+
+				return model, tuios.ProgramOptions()
+			}),
+		),
+	)
+
+	log.Println("Multi-user TUIOS server started")
+	server.ListenAndServe()
+}
+
+func getUserTheme(username string) string {
+	// Look up user preference from DB/config
+	themes := map[string]string{
+		"alice": "nord",
+		"bob":   "dracula",
+	}
+	return themes[username]
+}
+```
+
+---
+
+## Package Structure
+
+```
+pkg/tuios/
+  ├── tuios.go          # Public API
+  └── ...
+
+internal/
+  ├── app/              # Core window manager (not exported)
+  ├── config/           # Configuration (partial export)
+  ├── terminal/         # Terminal windows (not exported)
+  └── ...
+```
+
+<Info>
+Only `pkg/tuios` is part of the stable API. Do not import from `internal/` in your applications.
+</Info>
+
+---
+
+## Type Reference
+
+### Model
+
+```go
+type Model = app.OS
+```
+
+The main TUIOS model implementing `tea.Model`.
+
+### Mode
+
+```go
+type Mode = app.Mode
+
+const (
+	WindowManagementMode Mode = app.WindowManagementMode
+	TerminalMode         Mode = app.TerminalMode
+)
+```
+
+### Options
+
+```go
+type Options struct {
+	Theme             string
+	ShowKeys          bool
+	Animations        bool
+	ASCIIOnly         bool
+	Workspaces        int
+	BorderStyle       string
+	DockbarPosition   string
+	HideWindowButtons bool
+	ScrollbackLines   int
+	Width             int
+	Height            int
+	SSHMode           bool
+	UserConfig        *config.UserConfig
+}
+```
+
+### Option Function
+
+```go
+type Option func(*Options)
+```
+
+Functional option for configuring TUIOS.
+
+---
+
+## Best Practices
+
+### 1. Always Use ProgramOptions
+
+```go
+// Good
+p := tea.NewProgram(model, tuios.ProgramOptions()...)
+
+// Bad - missing FPS config
+p := tea.NewProgram(model)
+```
+
+### 2. Filter Mouse Motion
+
+```go
+p := tea.NewProgram(
+	model,
+	tea.WithFilter(tuios.FilterMouseMotion),  // Reduces CPU usage
+)
+```
+
+### 3. Handle Errors from Config Loading
+
+```go
+userConfig, err := tuios.Config.LoadUserConfig()
+if err != nil {
+	// Use defaults, don't fail
+	userConfig = tuios.Config.DefaultConfig()
+}
+```
+
+### 4. Match Theme to Environment
+
+```go
+// For web/SSH: let users use their terminal colors
+tuios.WithTheme("")  
+
+// For local CLI: use a specific theme
+tuios.WithTheme("dracula")
+```
+
+### 5. Adjust Scrollback for Use Case
+
+```go
+// Development (lots of output)
+tuios.WithScrollbackLines(50000)
+
+// Production (memory constrained)
+tuios.WithScrollbackLines(5000)
+```
+
+---
+
+## Troubleshooting
+
+### Terminal Size Detection
+
+If running in an environment where size detection fails:
+
+```go
+model := tuios.New(
+	tuios.WithSize(120, 40),  // Explicit fallback
+)
+```
+
+### Theme Not Applying
+
+Ensure theme initialization happens before program start:
+
+```go
+import "github.com/Gaurav-Gosain/tuios/internal/theme"
+
+// Initialize theme system (happens automatically in New())
+theme.Initialize("dracula")
+```
+
+### Mouse Events Not Working
+
+Ensure mouse is enabled in your program:
+
+```go
+p := tea.NewProgram(
+	model,
+	tea.WithMouseCellMotion(),  // Bubble Tea mouse support
+)
+```
+
+---
+
+## Migration from CLI to Library
+
+If you're used to the TUIOS CLI and want to embed it:
+
+**CLI:**
+```bash
+tuios --theme dracula --workspaces 5
+```
+
+**Library:**
+```go
+model := tuios.New(
+	tuios.WithTheme("dracula"),
+	tuios.WithWorkspaces(5),
+)
+
+p := tea.NewProgram(model, tuios.ProgramOptions()...)
+p.Run()
+```
+
+**CLI flags → Options:**
+- `--theme <name>` → `WithTheme(name)`
+- `--ascii-only` → `WithASCIIOnly(true)`
+- `--border-style <style>` → `WithBorderStyle(style)`
+- `--dockbar-position <pos>` → `WithDockbarPosition(pos)`
+- `--hide-window-buttons` → `WithHideWindowButtons(true)`
+- `--scrollback-lines <n>` → `WithScrollbackLines(n)`
+- `--show-keys` → `WithShowKeys(true)`
+- `--no-animations` → `WithAnimations(false)`
+
+---
+
+## See Also
+
+<CardGroup cols={2}>
+  <Card title="Bubble Tea" icon="tea" href="https://github.com/charmbracelet/bubbletea">
+    TUI framework documentation
+  </Card>
+  <Card title="sip" icon="browser" href="https://github.com/charmbracelet/sip">
+    Serve Bubble Tea apps as web apps
+  </Card>
+  <Card title="Wish" icon="network-wired" href="https://github.com/charmbracelet/wish">
+    SSH server middleware
+  </Card>
+  <Card title="Configuration" icon="gear" href="/configuration">
+    Config file reference
+  </Card>
+</CardGroup>

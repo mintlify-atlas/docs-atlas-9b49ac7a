@@ -1,0 +1,200 @@
+---
+title: Main Commands
+description: Core TUIOS commands for running the terminal UI window manager
+---
+
+## tuios
+
+Run the TUIOS Terminal UI Operating System.
+
+```bash
+tuios [flags]
+```
+
+TUIOS is a terminal-based window manager that provides a modern interface for managing multiple terminal sessions with workspace support, tiling modes, and comprehensive keyboard/mouse interactions.
+
+### Flags
+
+| Flag | Type | Default | Description |
+|------|------|---------|-------------|
+| `--debug` | boolean | `false` | Enable debug logging |
+| `--cpuprofile` | string | `""` | Write CPU profile to file |
+| `--ascii-only` | boolean | `false` | Use ASCII characters instead of Nerd Font icons |
+| `--theme` | string | `""` | Color theme to use (e.g., dracula, nord, tokyonight). Leave empty to use standard terminal colors without theming |
+| `--list-themes` | boolean | `false` | List all available themes and exit |
+| `--preview-theme` | string | `""` | Preview a theme's 16 ANSI colors |
+| `--border-style` | string | `""` | Window border style: `rounded`, `normal`, `thick`, `double`, `hidden`, `block`, `ascii`, `outer-half-block`, `inner-half-block` (default: from config or rounded) |
+| `--dockbar-position` | string | `""` | Dockbar position: `bottom`, `top`, `hidden` (default: from config or bottom) |
+| `--hide-window-buttons` | boolean | `false` | Hide window control buttons (minimize, maximize, close) |
+| `--scrollback-lines` | int | `0` | Number of lines to keep in scrollback buffer (default: from config or 10000, min: 100, max: 1000000) |
+| `--show-keys` | boolean | `false` | Enable showkeys overlay to display pressed keys |
+| `--no-animations` | boolean | `false` | Disable UI animations for instant transitions |
+| `--window-title-position` | string | `""` | Window title position: `bottom`, `top`, `hidden` (default: from config or bottom) |
+| `--hide-clock` | boolean | `false` | Hide the clock overlay |
+
+### Examples
+
+<CodeGroup>
+
+```bash Basic Usage
+# Run TUIOS with default settings
+tuios
+```
+
+```bash Debug Mode
+# Run with debug logging enabled
+tuios --debug
+```
+
+```bash ASCII Mode
+# Run without Nerd Font icons (ASCII-only mode)
+tuios --ascii-only
+```
+
+```bash CPU Profiling
+# Run with CPU profiling for performance analysis
+tuios --cpuprofile cpu.prof
+```
+
+```bash Theme Selection
+# Run with a specific theme
+tuios --theme dracula
+
+# List all available themes
+tuios --list-themes
+
+# Preview a theme's colors
+tuios --preview-theme dracula
+
+# Interactively select theme with fzf and preview
+tuios --theme $(tuios --list-themes | fzf --preview 'tuios --preview-theme {}')
+```
+
+```bash Customization
+# Hide window buttons and use thick borders
+tuios --hide-window-buttons --border-style thick
+
+# Position dockbar at top with custom scrollback
+tuios --dockbar-position top --scrollback-lines 50000
+
+# Minimal UI with no animations
+tuios --no-animations --hide-clock --dockbar-position hidden
+```
+
+</CodeGroup>
+
+---
+
+## tuios ssh
+
+Run TUIOS as an SSH server to allow remote connections.
+
+```bash
+tuios ssh [flags]
+```
+
+Allows remote connections to TUIOS via SSH. The server will generate a host key automatically if not specified.
+
+By default, SSH sessions connect to the TUIOS daemon for persistent sessions. Session selection priority:
+1. `--default-session` flag (if specified)
+2. SSH username (if not generic like "tuios", "root", "anonymous")
+3. SSH command argument (e.g., `ssh host attach mysession`)
+4. First available session or create new
+
+Use `--ephemeral` for standalone sessions (legacy behavior).
+
+### Flags
+
+| Flag | Type | Default | Description |
+|------|------|---------|-------------|
+| `--port` | string | `"2222"` | SSH server port |
+| `--host` | string | `"localhost"` | SSH server host |
+| `--key-path` | string | `""` | Path to SSH host key (auto-generated if not specified) |
+| `--default-session` | string | `""` | Default session name for all connections |
+| `--ephemeral` | boolean | `false` | Run in ephemeral mode (standalone, no daemon) |
+
+### Examples
+
+<CodeGroup>
+
+```bash Default SSH Server
+# Start SSH server on default port 2222
+tuios ssh
+```
+
+```bash Custom Port
+# Start on custom port
+tuios ssh --port 2222
+```
+
+```bash Custom Host Key
+# Specify custom host key location
+tuios ssh --key-path /path/to/host_key
+```
+
+```bash Default Session
+# Use a default session for all SSH connections
+tuios ssh --default-session mysession
+```
+
+```bash Ephemeral Mode
+# Run in ephemeral mode (standalone, no daemon)
+tuios ssh --ephemeral
+```
+
+</CodeGroup>
+
+---
+
+## tuios daemon
+
+Run the TUIOS daemon in the foreground.
+
+```bash
+tuios daemon [flags]
+```
+
+This is useful for debugging. Normally the daemon runs in the background.
+
+The daemon manages persistent sessions and handles client connections.
+
+### Flags
+
+| Flag | Type | Default | Description |
+|------|------|---------|-------------|
+| `--log-level` | string | `""` | Debug log level: `off`, `errors`, `basic`, `messages`, `verbose`, `trace` |
+
+### Debug Log Levels
+
+- `off` - No debug output (default)
+- `errors` - Only error messages
+- `basic` - Connection events and errors
+- `messages` - All protocol messages except PTY I/O
+- `verbose` - All messages including PTY I/O
+- `trace` - Full payload hex dumps
+
+### Examples
+
+<CodeGroup>
+
+```bash Basic Daemon
+# Run daemon in foreground
+tuios daemon
+```
+
+```bash With Logging
+# Run with message-level logging
+tuios daemon --log-level=messages
+
+# Run with verbose logging (includes PTY I/O)
+tuios daemon --log-level=verbose
+
+# Run with full trace logging
+tuios daemon --log-level=trace
+```
+
+</CodeGroup>
+
+<Note>
+The daemon starts automatically when you create or attach to a session, so you typically don't need to run this command manually. Use it primarily for debugging purposes.
+</Note>

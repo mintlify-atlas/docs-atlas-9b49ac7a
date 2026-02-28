@@ -1,0 +1,502 @@
+---
+title: Testing
+description: Guide to testing TUIOS including running tests, writing tests, and manual testing
+---
+
+This guide covers testing TUIOS, including running the test suite, writing new tests, and performing manual testing.
+
+## Running Tests
+
+### Run All Tests
+
+Run the complete test suite:
+
+```bash
+go test ./...
+```
+
+This runs all tests in all packages under the current directory.
+
+### Run Tests in Specific Package
+
+Test a specific package:
+
+```bash
+# Test tape scripting package
+go test ./internal/tape/...
+
+# Test configuration package
+go test ./internal/config/...
+
+# Test VT emulation
+go test ./internal/vt/...
+```
+
+### Verbose Output
+
+See detailed test output:
+
+```bash
+go test -v ./...
+```
+
+### Run Specific Test
+
+Run a single test by name:
+
+```bash
+go test -v ./internal/tape -run TestLexerBasicTokens
+```
+
+Use regex patterns to match multiple tests:
+
+```bash
+# Run all lexer tests
+go test -v ./internal/tape -run TestLexer
+
+# Run all tests containing "Parser"
+go test -v ./... -run Parser
+```
+
+### Short Mode
+
+Skip slow tests:
+
+```bash
+go test -short ./...
+```
+
+Mark slow tests in your code:
+
+```go
+func TestSlowOperation(t *testing.T) {
+    if testing.Short() {
+        t.Skip("skipping slow test in short mode")
+    }
+    // test code
+}
+```
+
+## Race Detection
+
+Detect race conditions in concurrent code:
+
+```bash
+go test -race ./...
+```
+
+<Warning>
+  Race detection adds significant overhead. Tests run much slower but catch race conditions.
+</Warning>
+
+### Run Specific Package with Race Detection
+
+```bash
+go test -race ./internal/terminal/...
+go test -race ./internal/app/...
+```
+
+Always run with `-race` when testing concurrent code (PTY handling, goroutines, channels).
+
+## Benchmarks
+
+### Run Benchmarks
+
+Run performance benchmarks:
+
+```bash
+go test -bench=. ./...
+```
+
+### Benchmark Specific Package
+
+```bash
+go test -bench=. ./internal/app/...
+go test -bench=. ./internal/vt/...
+```
+
+### Benchmark with Memory Stats
+
+See memory allocations:
+
+```bash
+go test -bench=. -benchmem ./internal/app/...
+```
+
+### Run Specific Benchmark
+
+```bash
+go test -bench=BenchmarkStyleCache ./internal/app/...
+```
+
+### Compare Benchmarks
+
+Compare performance before and after changes:
+
+```bash
+# Save baseline
+go test -bench=. ./internal/app/... > old.txt
+
+# Make changes, then compare
+go test -bench=. ./internal/app/... > new.txt
+go install golang.org/x/perf/cmd/benchstat@latest
+benchstat old.txt new.txt
+```
+
+## Test Coverage
+
+### Generate Coverage Report
+
+```bash
+go test -cover ./...
+```
+
+### Detailed Coverage
+
+Generate HTML coverage report:
+
+```bash
+go test -coverprofile=coverage.out ./...
+go tool cover -html=coverage.out
+```
+
+This opens a browser showing which lines are covered.
+
+### Coverage for Specific Package
+
+```bash
+go test -coverprofile=coverage.out ./internal/tape/...
+go tool cover -html=coverage.out
+```
+
+## Writing Tests
+
+### Test File Structure
+
+Place test files alongside the code they test:
+
+```
+internal/tape/
+├── lexer.go
+├── lexer_test.go
+├── parser.go
+└── parser_test.go
+```
+
+Name test files with `_test.go` suffix.
+
+### Table-Driven Tests
+
+Use table-driven tests for multiple test cases:
+
+```go
+package example
+
+import "testing"
+
+func TestAdd(t *testing.T) {
+    tests := []struct {
+        name     string
+        a, b     int
+        expected int
+    }{
+        {"positive", 2, 3, 5},
+        {"negative", -1, -2, -3},
+        {"zero", 0, 5, 5},
+    }
+
+    for _, tt := range tests {
+        t.Run(tt.name, func(t *testing.T) {
+            result := Add(tt.a, tt.b)
+            if result != tt.expected {
+                t.Errorf("Add(%d, %d) = %d; want %d",
+                    tt.a, tt.b, result, tt.expected)
+            }
+        })
+    }
+}
+```
+
+### Subtests
+
+Use `t.Run()` for subtests:
+
+```go
+func TestFeature(t *testing.T) {
+    t.Run("basic case", func(t *testing.T) {
+        // test code
+    })
+
+    t.Run("edge case", func(t *testing.T) {
+        // test code
+    })
+}
+```
+
+### Test Helpers
+
+Create helper functions for common setup:
+
+```go
+func setupTest(t *testing.T) (*State, func()) {
+    t.Helper()
+    state := NewState()
+    cleanup := func() {
+        state.Close()
+    }
+    return state, cleanup
+}
+
+func TestSomething(t *testing.T) {
+    state, cleanup := setupTest(t)
+    defer cleanup()
+    // test code
+}
+```
+
+### Example Tests
+
+Write example tests that appear in godoc:
+
+```go
+func ExampleParse() {
+    result := Parse("hello")
+    fmt.Println(result)
+    // Output: hello
+}
+```
+
+## Tape Script Testing
+
+TUIOS includes tape scripting for automated testing.
+
+### Validate Tape Files
+
+Check tape syntax:
+
+```bash
+tuios tape validate examples/demo.tape
+```
+
+### Run Tape Scripts
+
+Execute tape scripts:
+
+```bash
+# Headless mode (background)
+go run ./cmd/tuios tape run examples/demo.tape
+
+# Interactive mode (visible TUI)
+go run ./cmd/tuios tape play examples/demo.tape
+```
+
+### List Available Tapes
+
+```bash
+tuios tape list
+```
+
+### Create Test Tapes
+
+Write `.tape` files for automated testing:
+
+```tape
+# Test window creation
+NewWindow
+Sleep 100ms
+
+# Test typing
+Type "echo test"
+Enter
+Sleep 200ms
+
+# Test workspace switching
+Ctrl+B
+Type "w"
+Type "2"
+Sleep 100ms
+
+# Close window
+Ctrl+B
+Type "x"
+```
+
+Place test tapes in `examples/` or `testdata/` directories.
+
+## Manual Testing Checklist
+
+When making changes to TUIOS, test these core features:
+
+### Window Management
+
+- [ ] Create new window (Ctrl+B c or n)
+- [ ] Close window (Ctrl+B x)
+- [ ] Switch between windows (Ctrl+B arrow keys)
+- [ ] Rename window (Ctrl+B t r)
+- [ ] Focus window by clicking
+- [ ] Drag window with mouse
+- [ ] Resize window with mouse
+
+### Workspaces
+
+- [ ] Switch workspace (Alt+1 through Alt+9)
+- [ ] Move window to workspace (Ctrl+B w then workspace number)
+- [ ] Create windows in different workspaces
+- [ ] Workspace indicator shows current workspace
+
+### Tiling Mode
+
+- [ ] Toggle tiling (t key in window management mode)
+- [ ] Windows tile automatically
+- [ ] Create horizontal split (Ctrl+B -)
+- [ ] Create vertical split (Ctrl+B |)
+- [ ] Rotate split direction (Ctrl+B t r)
+- [ ] Equalize splits (Ctrl+B t e)
+- [ ] BSP preselection (Ctrl+B p + direction)
+
+### Copy Mode
+
+- [ ] Enter copy mode (Ctrl+B [)
+- [ ] Navigate with vim keys (h j k l)
+- [ ] Scroll with Ctrl+D / Ctrl+U
+- [ ] Search with / and n/N
+- [ ] Select text with v
+- [ ] Exit copy mode (q or Esc)
+
+### Terminal Functionality
+
+- [ ] Text output displays correctly
+- [ ] ANSI colors render properly
+- [ ] Unicode characters work
+- [ ] Scrollback buffer works (10,000 lines)
+- [ ] Shell commands execute
+- [ ] Terminal resizing works
+
+### Daemon Mode
+
+- [ ] Create session (tuios new session1)
+- [ ] List sessions (tuios ls)
+- [ ] Attach to session (tuios attach session1)
+- [ ] Detach from session (Ctrl+B d)
+- [ ] Kill session (tuios kill-session session1)
+- [ ] State persists across detach/attach
+
+### SSH Server Mode
+
+- [ ] Start SSH server (tuios ssh)
+- [ ] Connect from client (ssh -p 2222 localhost)
+- [ ] Per-connection isolation works
+- [ ] Multiple clients can connect
+- [ ] Clean disconnect
+
+### Tape Recording
+
+- [ ] Start recording (Ctrl+B T r)
+- [ ] Perform actions
+- [ ] Stop recording (Ctrl+B T s)
+- [ ] Recording saves to file
+- [ ] Playback works (tuios tape play filename)
+
+### Configuration
+
+- [ ] Edit config (tuios config edit)
+- [ ] Custom keybindings work
+- [ ] Config reload without restart
+- [ ] Invalid config shows error
+
+### Performance
+
+- [ ] Create 10+ windows - smooth rendering
+- [ ] Switch workspaces - no lag
+- [ ] Fast output (cat large file) - stays responsive
+- [ ] Memory usage stays reasonable
+- [ ] No memory leaks over time
+
+### Cross-Platform (if applicable)
+
+- [ ] Linux - works correctly
+- [ ] macOS - works correctly
+- [ ] Windows - works correctly (WSL or native)
+- [ ] FreeBSD - works correctly
+
+## Debugging Tests
+
+### Print Debug Info
+
+Add debug output:
+
+```go
+t.Logf("value: %v", value)
+```
+
+Only prints when test fails or with `-v` flag.
+
+### Skip Tests
+
+Temporarily skip a test:
+
+```go
+t.Skip("temporarily disabled")
+```
+
+### Test Timeout
+
+Set test timeout:
+
+```bash
+go test -timeout 30s ./...
+```
+
+Default is 10 minutes.
+
+### Parallel Tests
+
+Run tests in parallel:
+
+```go
+func TestParallel(t *testing.T) {
+    t.Parallel()
+    // test code
+}
+```
+
+Control parallelism:
+
+```bash
+go test -parallel 4 ./...
+```
+
+## Continuous Integration
+
+TUIOS uses GitHub Actions for CI:
+
+### CI Runs
+
+- All tests (`go test ./...`)
+- Race detection (`go test -race ./...`)
+- Linting (`golangci-lint`)
+- Build verification
+
+### Test Locally Like CI
+
+Run the same checks CI runs:
+
+```bash
+# Run tests
+go test ./...
+
+# Run with race detection
+go test -race ./...
+
+# Check formatting
+test -z "$(gofmt -s -l .)"
+
+# Run linter (if installed)
+golangci-lint run
+```
+
+## Next Steps
+
+- **[Contributing Guide](/development/contributing)** - Submit your changes
+- **[Building from Source](/development/building)** - Build TUIOS locally
+- **[Architecture Guide](/development/architecture)** - Understand the codebase

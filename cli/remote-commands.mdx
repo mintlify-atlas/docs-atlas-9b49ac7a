@@ -1,0 +1,480 @@
+---
+title: Remote Control Commands
+description: Control running TUIOS sessions remotely via CLI
+---
+
+## Overview
+
+These commands allow you to control and inspect running TUIOS sessions from the command line, enabling scripting, automation, and remote management.
+
+---
+
+## tuios send-keys
+
+Send keystrokes to a running TUIOS session.
+
+```bash
+tuios send-keys <keys> [flags]
+```
+
+By default, keys are sent to TUIOS itself (for window management, mode switching, etc). Use `--literal` to send keys directly to the focused terminal PTY. Use `--raw` to send each character as a separate key (no splitting on spaces).
+
+### Arguments
+
+| Argument | Required | Description |
+|----------|----------|-------------|
+| `keys` | Yes | Keys to send (see format below) |
+
+### Flags
+
+| Flag | Short | Type | Default | Description |
+|------|-------|------|---------|-------------|
+| `--session` | `-s` | string | `""` | Target session (default: most recently active) |
+| `--literal` | `-l` | boolean | `false` | Send keys directly to terminal PTY (bypass TUIOS) |
+| `--raw` | `-r` | boolean | `false` | Treat each character as a separate key (no splitting on space/comma) |
+
+### Key Format
+
+**Default mode (TUIOS control):**
+- Single keys: `"i"`, `"n"`, `"Enter"`, `"Escape"`, `"Space"`
+- Key combos: `"ctrl+b"`, `"alt+1"`, `"shift+Enter"` (case-insensitive)
+- Sequences: space or comma separated, e.g. `"ctrl+b q"` or `"ctrl+b,q"`
+
+**Special tokens:**
+- `$PREFIX` or `PREFIX`: expands to configured leader key (default: `ctrl+b`)
+
+**Modifiers:** `ctrl`, `alt`, `shift`, `super`, `meta`
+
+**Special keys:** `Enter`, `Return`, `Space`, `Tab`, `Escape`, `Esc`, `Backspace`, `Delete`, `Up`, `Down`, `Left`, `Right`, `Home`, `End`, `PageUp`, `PageDown`, `F1`-`F12`
+
+### Examples
+
+<CodeGroup>
+
+```bash Enter Terminal Mode
+# Press 'i' to enter terminal mode
+tuios send-keys i
+```
+
+```bash Press Enter
+# Send Enter key
+tuios send-keys Enter
+```
+
+```bash Prefix Key Sequences
+# Trigger prefix key followed by 'q' (quit)
+tuios send-keys "ctrl+b q"
+tuios send-keys "$PREFIX q"
+
+# Multiple keys: prefix + new window
+tuios send-keys "ctrl+b,n"
+tuios send-keys "PREFIX n"
+```
+
+```bash Send Control Keys
+# Send Ctrl+C to TUIOS
+tuios send-keys ctrl+c
+
+# Send Escape key
+tuios send-keys Escape
+tuios send-keys Esc
+```
+
+```bash Literal Text to Terminal
+# Send literal text directly to terminal PTY
+# Use --raw to prevent space splitting
+tuios send-keys --literal --raw "echo hello"
+
+# Send command with Enter
+tuios send-keys --literal "ls -la"
+tuios send-keys --literal Enter
+```
+
+```bash Raw Text with Spaces
+# Send text with spaces (each char is a key)
+tuios send-keys --raw "hello world"
+```
+
+```bash Target Specific Session
+# Send to a named session
+tuios send-keys --session mysession Escape
+tuios send-keys -s development "ctrl+b n"
+```
+
+</CodeGroup>
+
+---
+
+## tuios run-command
+
+Execute a tape command in a running TUIOS session.
+
+```bash
+tuios run-command <command> [args...] [flags]
+```
+
+This allows you to control TUIOS remotely by executing tape commands. Use `--list` to see all available commands. Use `--json` to get machine-readable output for scripting.
+
+### Arguments
+
+| Argument | Required | Description |
+|----------|----------|-------------|
+| `command` | Yes (unless `--list`) | Tape command name to execute |
+| `args` | No | Arguments for the command |
+
+### Flags
+
+| Flag | Short | Type | Default | Description |
+|------|-------|------|---------|-------------|
+| `--session` | `-s` | string | `""` | Target session (default: most recently active) |
+| `--list` | | boolean | `false` | List all available commands |
+| `--json` | | boolean | `false` | Output result as JSON (for scripting) |
+
+### Examples
+
+<CodeGroup>
+
+```bash List Commands
+# List all available commands
+tuios run-command --list
+```
+
+```bash Window Management
+# Create a new window
+tuios run-command NewWindow
+tuios run-command NewWindow "My Window"
+
+# Get window ID for scripting
+tuios run-command --json NewWindow "Build Terminal"
+```
+
+```bash Workspace Control
+# Switch to workspace 2
+tuios run-command SwitchWorkspace 2
+
+# Move window to workspace 3
+tuios run-command MoveWindowToWorkspace 3
+```
+
+```bash Tiling Mode
+# Toggle tiling mode
+tuios run-command ToggleTiling
+
+# Set specific tiling layout
+tuios run-command SetTilingMode horizontal
+tuios run-command SetTilingMode vertical
+```
+
+```bash UI Configuration
+# Change dockbar position
+tuios run-command SetDockbarPosition top
+tuios run-command SetDockbarPosition bottom
+
+# Change border style
+tuios run-command SetBorderStyle thick
+tuios run-command SetBorderStyle rounded
+```
+
+```bash Target Specific Session
+# Execute in named session
+tuios run-command --session mysession ToggleTiling
+tuios run-command -s development NewWindow "Tests"
+```
+
+</CodeGroup>
+
+<Tip>
+Use `--json` flag when scripting to get structured output that's easy to parse with tools like `jq`.
+</Tip>
+
+---
+
+## tuios set-config
+
+Set a configuration option in a running TUIOS session at runtime.
+
+```bash
+tuios set-config <path> <value> [flags]
+```
+
+### Arguments
+
+| Argument | Required | Description |
+|----------|----------|-------------|
+| `path` | Yes | Configuration path (see supported paths below) |
+| `value` | Yes | New value for the configuration |
+
+### Flags
+
+| Flag | Short | Type | Default | Description |
+|------|-------|------|---------|-------------|
+| `--session` | `-s` | string | `""` | Target session (default: most recently active) |
+
+### Supported Configuration Paths
+
+| Path | Valid Values | Description |
+|------|--------------|-------------|
+| `dockbar_position` | `top`, `bottom`, `left`, `right` | Dockbar position |
+| `border_style` | `rounded`, `normal`, `thick`, `double`, `hidden`, `block`, `ascii` | Window border style |
+| `animations` | `true`, `false`, `toggle` | Enable/disable animations |
+| `hide_window_buttons` | `true`, `false` | Show/hide window control buttons |
+
+### Examples
+
+<CodeGroup>
+
+```bash Dockbar Position
+# Change dockbar position
+tuios set-config dockbar_position top
+tuios set-config dockbar_position bottom
+tuios set-config dockbar_position left
+tuios set-config dockbar_position right
+```
+
+```bash Border Style
+# Change window border style
+tuios set-config border_style rounded
+tuios set-config border_style thick
+tuios set-config border_style double
+tuios set-config border_style hidden
+```
+
+```bash Animations
+# Toggle animations on/off
+tuios set-config animations toggle
+
+# Disable animations
+tuios set-config animations false
+
+# Enable animations
+tuios set-config animations true
+```
+
+```bash Window Buttons
+# Hide window control buttons
+tuios set-config hide_window_buttons true
+
+# Show window control buttons
+tuios set-config hide_window_buttons false
+```
+
+```bash Target Specific Session
+# Configure specific session
+tuios set-config --session mysession border_style thick
+tuios set-config -s development animations false
+```
+
+</CodeGroup>
+
+---
+
+## tuios list-windows
+
+List all windows in the session.
+
+```bash
+tuios list-windows [flags]
+```
+
+Shows window ID, title, workspace, focused state, and more. Use `--json` for machine-readable output that can be used for scripting.
+
+### Flags
+
+| Flag | Short | Type | Default | Description |
+|------|-------|------|---------|-------------|
+| `--session` | `-s` | string | `""` | Target session (default: most recently active) |
+| `--json` | | boolean | `false` | Output as JSON |
+
+### Examples
+
+<CodeGroup>
+
+```bash Table Format
+# List all windows (table format)
+tuios list-windows
+```
+
+```bash JSON Format
+# List as JSON for scripting
+tuios list-windows --json
+
+# Use with jq to get focused window ID
+tuios list-windows --json | jq '.focused_window_id'
+
+# Get all window titles
+tuios list-windows --json | jq '.windows[].title'
+```
+
+```bash Target Specific Session
+# List windows in named session
+tuios list-windows --session mysession
+tuios list-windows -s development --json
+```
+
+</CodeGroup>
+
+---
+
+## tuios get-window
+
+Get detailed info about a window.
+
+```bash
+tuios get-window [id-or-name] [flags]
+```
+
+If no ID or name is provided, returns info about the focused window. Use `--json` for machine-readable output.
+
+### Arguments
+
+| Argument | Required | Description |
+|----------|----------|-------------|
+| `id-or-name` | No | Window ID or name (focused window if omitted) |
+
+### Flags
+
+| Flag | Short | Type | Default | Description |
+|------|-------|------|---------|-------------|
+| `--session` | `-s` | string | `""` | Target session (default: most recently active) |
+| `--json` | | boolean | `false` | Output as JSON |
+
+### Examples
+
+<CodeGroup>
+
+```bash Focused Window
+# Get focused window info
+tuios get-window
+tuios get-window --json
+```
+
+```bash By Name
+# Get window by name
+tuios get-window "Server"
+tuios get-window "Build Terminal"
+```
+
+```bash By ID
+# Get window by ID (from list-windows)
+tuios get-window abc123-def456
+tuios get-window abc123-def456 --json
+```
+
+```bash Target Specific Session
+# Get window from named session
+tuios get-window --session mysession
+tuios get-window -s development "Tests"
+```
+
+</CodeGroup>
+
+---
+
+## tuios session-info
+
+Get current session information.
+
+```bash
+tuios session-info [flags]
+```
+
+Shows mode, workspace, tiling state, theme, and more. Use `--json` for machine-readable output.
+
+### Flags
+
+| Flag | Short | Type | Default | Description |
+|------|-------|------|---------|-------------|
+| `--session` | `-s` | string | `""` | Target session (default: most recently active) |
+| `--json` | | boolean | `false` | Output as JSON |
+
+### Examples
+
+<CodeGroup>
+
+```bash Table Format
+# Get session info (table format)
+tuios session-info
+```
+
+```bash JSON Format
+# Get as JSON for scripting
+tuios session-info --json
+
+# Use with jq to check if tiling is enabled
+tuios session-info --json | jq '.tiling_enabled'
+
+# Get current workspace
+tuios session-info --json | jq '.current_workspace'
+
+# Get current mode
+tuios session-info --json | jq '.mode'
+```
+
+```bash Target Specific Session
+# Get info for named session
+tuios session-info --session mysession
+tuios session-info -s development --json
+```
+
+</CodeGroup>
+
+---
+
+## tuios logs
+
+View daemon logs.
+
+```bash
+tuios logs [flags]
+```
+
+This is useful for debugging issues with remote commands, sessions, and PTY handling. Logs are stored in a ring buffer (1000 entries by default).
+
+### Flags
+
+| Flag | Short | Type | Default | Description |
+|------|-------|------|---------|-------------|
+| `--lines` | `-n` | int | `50` | Number of log entries to show (0 or `--all` for all) |
+| `--clear` | | boolean | `false` | Clear logs after viewing |
+| `--follow` | `-f` | boolean | `false` | Follow logs (continuously show new entries) |
+| `--all` | | boolean | `false` | Show all log entries |
+
+### Examples
+
+<CodeGroup>
+
+```bash Recent Logs
+# View last 50 log entries (default)
+tuios logs
+
+# View last 100 log entries
+tuios logs -n 100
+tuios logs --lines 100
+```
+
+```bash All Logs
+# View all stored log entries
+tuios logs --all
+tuios logs -n 0
+```
+
+```bash Clear Logs
+# Clear logs after viewing
+tuios logs --clear
+tuios logs -n 100 --clear
+```
+
+```bash Follow Mode
+# Follow logs (continuously show new entries)
+tuios logs -f
+tuios logs --follow
+
+# Follow with more context
+tuios logs -f -n 100
+```
+
+</CodeGroup>
+
+<Tip>
+Use `tuios logs -f` to monitor daemon activity in real-time, similar to `tail -f`.
+</Tip>

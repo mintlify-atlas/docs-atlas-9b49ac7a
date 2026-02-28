@@ -1,0 +1,560 @@
+---
+title: Settings
+description: All TUIOS configuration options and CLI flags
+---
+
+TUIOS provides extensive configuration through both TOML config files and CLI flags. Flags override config file settings.
+
+## CLI Flags
+
+### Appearance
+
+#### Border Style
+
+Set the window border style:
+
+```bash
+tuios --border-style rounded
+```
+
+Options:
+- `rounded` - Rounded corners (default)
+- `normal` - Standard box drawing
+- `thick` - Thick borders
+- `double` - Double-line borders
+- `hidden` - No borders
+- `block` - Block characters
+- `ascii` - ASCII-only (`+`, `-`, `|`)
+- `outer-half-block` - Half-block outer
+- `inner-half-block` - Half-block inner
+
+Config equivalent:
+```toml config.toml
+[appearance]
+border_style = "rounded"
+```
+
+#### Dockbar Position
+
+Control dockbar placement:
+
+```bash
+tuios --dockbar-position top
+```
+
+Options:
+- `bottom` - Bottom of screen (default)
+- `top` - Top of screen
+- `hidden` - Hide dockbar
+
+Config equivalent:
+```toml config.toml
+[appearance]
+dockbar_position = "bottom"
+```
+
+#### Window Title Position
+
+Set window title location:
+
+```bash
+tuios --window-title-position top
+```
+
+Options:
+- `bottom` - Below window (default)
+- `top` - Above window
+- `hidden` - Hide title
+
+Displays `CustomName` if set, otherwise the terminal title.
+
+Config equivalent:
+```toml config.toml
+[appearance]
+window_title_position = "bottom"
+```
+
+#### Hide Window Buttons
+
+Hide minimize/maximize/close buttons:
+
+```bash
+tuios --hide-window-buttons
+```
+
+Config equivalent:
+```toml config.toml
+[appearance]
+hide_window_buttons = true
+```
+
+#### Hide Clock
+
+Hide the clock overlay:
+
+```bash
+tuios --hide-clock
+```
+
+Config equivalent:
+```toml config.toml
+[appearance]
+hide_clock = true
+```
+
+#### Scrollback Lines
+
+Set terminal scrollback buffer size:
+
+```bash
+tuios --scrollback-lines 20000
+```
+
+- **Default**: 10,000 lines
+- **Range**: 100 to 1,000,000
+
+Config equivalent:
+```toml config.toml
+[appearance]
+scrollback_lines = 10000
+```
+
+#### Animations
+
+Disable UI animations:
+
+```bash
+tuios --no-animations
+```
+
+When disabled, all transitions are instant.
+
+Config equivalent:
+```toml config.toml
+[appearance]
+animations_enabled = false
+```
+
+#### ASCII-Only Mode
+
+Use only ASCII characters (no Nerd Font icons):
+
+```bash
+tuios --ascii-only
+```
+
+Useful for:
+- Terminals without Nerd Font support
+- Accessibility
+- Remote sessions over slow connections
+
+### Theme
+
+#### Set Theme
+
+Apply a color theme:
+
+```bash
+tuios --theme dracula
+```
+
+See [Themes](/configuration/themes) for available themes.
+
+Config equivalent:
+```toml config.toml
+[appearance]
+theme = "dracula"
+```
+
+#### List Themes
+
+Show all available themes:
+
+```bash
+tuios --list-themes
+```
+
+Outputs theme IDs, one per line.
+
+#### Preview Theme
+
+Preview a theme's 16 ANSI colors:
+
+```bash
+tuios --preview-theme nord
+```
+
+Displays color swatches with hex values.
+
+### Debug & Development
+
+#### Debug Mode
+
+Enable debug logging:
+
+```bash
+tuios --debug
+```
+
+Logs detailed events to stderr.
+
+#### Show Keys
+
+Display pressed keys overlay:
+
+```bash
+tuios --show-keys
+```
+
+Useful for:
+- Debugging keybindings
+- Checking Kitty protocol support
+- Identifying modifier key issues
+
+Toggle at runtime: `Ctrl+B, D, k`
+
+#### CPU Profile
+
+Write CPU profile for performance analysis:
+
+```bash
+tuios --cpuprofile cpu.prof
+```
+
+Analyze with:
+```bash
+go tool pprof cpu.prof
+```
+
+### Version
+
+Show version information:
+
+```bash
+tuios --version
+```
+
+Displays:
+- Version number
+- Git commit
+- Build date
+- Built by
+
+## Configuration File Settings
+
+### Appearance Section
+
+All appearance settings:
+
+```toml config.toml
+[appearance]
+border_style = "rounded"
+theme = "dracula"
+dockbar_position = "bottom"
+scrollback_lines = 10000
+window_title_position = "bottom"
+animations_enabled = true
+whichkey_enabled = true
+whichkey_position = "bottom-right"
+hide_window_buttons = false
+hide_clock = false
+preferred_shell = ""
+```
+
+#### Which-Key Settings
+
+Control which-key popup (shows available keybindings after pressing leader key):
+
+```toml config.toml
+[appearance]
+whichkey_enabled = true
+whichkey_position = "bottom-right"
+```
+
+Positions:
+- `bottom-right` (default)
+- `bottom-left`
+- `top-right`
+- `top-left`
+- `center`
+
+#### Preferred Shell
+
+Override shell auto-detection:
+
+```toml config.toml
+[appearance]
+preferred_shell = "/bin/zsh"
+```
+
+Leave empty for auto-detection based on:
+1. `$SHELL` environment variable
+2. Platform defaults (`/bin/bash`, `cmd.exe`, etc.)
+
+### Daemon Section
+
+Daemon-related settings:
+
+```toml config.toml
+[daemon]
+log_level = "off"
+default_codec = "gob"
+socket_path = ""
+```
+
+#### Log Level
+
+Daemon debug logging level:
+
+```toml config.toml
+[daemon]
+log_level = "messages"
+```
+
+Levels:
+- `off` - No debug output (default)
+- `errors` - Only error messages
+- `basic` - Connection events and errors
+- `messages` - All protocol messages except PTY I/O
+- `verbose` - All messages including PTY I/O
+- `trace` - Full payload hex dumps
+
+#### Default Codec
+
+Protocol serialization format:
+
+```toml config.toml
+[daemon]
+default_codec = "gob"
+```
+
+Options:
+- `gob` - Go binary encoding (default, faster)
+- `json` - JSON encoding (human-readable, slower)
+
+#### Socket Path
+
+Custom daemon socket location:
+
+```toml config.toml
+[daemon]
+socket_path = "/custom/path/tuios.sock"
+```
+
+Default (empty): `$XDG_RUNTIME_DIR/tuios/daemon.sock`
+
+### Keybindings Section
+
+See [Keybindings](/configuration/keybindings) for complete customization.
+
+```toml config.toml
+[keybindings]
+leader_key = "ctrl+b"
+
+[keybindings.window_management]
+new_window = ["n"]
+close_window = ["w", "x"]
+# ... more keybindings
+```
+
+## Runtime Configuration
+
+Some settings can be changed while TUIOS is running:
+
+### Set Config Command
+
+Change settings in a running session:
+
+```bash
+tuios set-config <path> <value>
+```
+
+#### Available Runtime Settings
+
+**Dockbar position:**
+```bash
+tuios set-config dockbar_position top
+tuios set-config dockbar_position bottom
+tuios set-config dockbar_position hidden
+```
+
+**Border style:**
+```bash
+tuios set-config border_style rounded
+tuios set-config border_style thick
+tuios set-config border_style ascii
+```
+
+**Animations:**
+```bash
+tuios set-config animations true
+tuios set-config animations false
+tuios set-config animations toggle  # Toggle current state
+```
+
+**Window buttons:**
+```bash
+tuios set-config hide_window_buttons true
+tuios set-config hide_window_buttons false
+```
+
+## Configuration Priority
+
+Settings are applied in this order (later overrides earlier):
+
+1. **Default values** - Built-in defaults
+2. **Config file** - `~/.config/tuios/config.toml`
+3. **CLI flags** - Command-line arguments
+4. **Runtime commands** - `tuios set-config`
+
+## All CLI Commands
+
+### Main Commands
+
+```bash
+tuios                    # Run TUIOS
+tuios --help            # Show help
+tuios --version         # Show version
+```
+
+### Configuration Management
+
+```bash
+tuios config path       # Show config path
+tuios config edit       # Edit config in $EDITOR
+tuios config reset      # Reset to defaults
+```
+
+### Keybindings
+
+```bash
+tuios keybinds list         # List all keybindings
+tuios keybinds list-custom  # List custom keybindings
+```
+
+### Session Management
+
+```bash
+tuios new [name]            # Create new session
+tuios attach [name]         # Attach to session
+tuios ls                    # List sessions
+tuios kill-session <name>   # Kill session
+```
+
+### Daemon
+
+```bash
+tuios daemon                # Run daemon foreground
+tuios start-server          # Start daemon background
+tuios kill-server           # Stop daemon
+tuios logs                  # View daemon logs
+```
+
+### Remote Control
+
+```bash
+tuios send-keys <keys>            # Send keystrokes
+tuios run-command <cmd> [args]    # Execute tape command
+tuios set-config <path> <value>   # Change config
+tuios list-windows                # List windows
+tuios get-window [id]             # Get window info
+tuios session-info                # Get session info
+```
+
+### Tape Automation
+
+```bash
+tuios tape play <file>      # Run tape file
+tuios tape exec <file>      # Execute in running session
+tuios tape validate <file>  # Validate syntax
+tuios tape list             # List recordings
+tuios tape dir              # Show tape directory
+tuios tape delete <name>    # Delete recording
+tuios tape show <name>      # Display tape contents
+```
+
+### SSH Server
+
+```bash
+tuios ssh                   # Start SSH server
+tuios ssh --port 2222       # Custom port
+tuios ssh --ephemeral       # Standalone mode
+```
+
+## Environment Variables
+
+TUIOS respects these environment variables:
+
+- `$SHELL` - Default shell (overridden by `preferred_shell` config)
+- `$EDITOR` - Editor for `tuios config edit`
+- `$VISUAL` - Alternative editor
+- `$XDG_CONFIG_HOME` - Config directory base
+- `$XDG_RUNTIME_DIR` - Runtime files (daemon socket)
+- `$XDG_DATA_HOME` - Data directory (tape recordings)
+
+## Configuration Examples
+
+### Minimal Config
+
+```toml config.toml
+[appearance]
+theme = "dracula"
+border_style = "rounded"
+
+[keybindings]
+leader_key = "ctrl+b"
+```
+
+### Power User Config
+
+```toml config.toml
+[appearance]
+border_style = "thick"
+theme = "nord"
+dockbar_position = "top"
+scrollback_lines = 50000
+window_title_position = "hidden"
+animations_enabled = false
+whichkey_enabled = true
+whichkey_position = "center"
+hide_window_buttons = true
+
+[keybindings]
+leader_key = "ctrl+space"
+
+[keybindings.window_management]
+new_window = ["ctrl+t"]
+close_window = ["ctrl+w"]
+next_window = ["ctrl+tab"]
+
+[daemon]
+log_level = "basic"
+default_codec = "gob"
+```
+
+### Accessibility Config
+
+```toml config.toml
+[appearance]
+border_style = "ascii"
+dockbar_position = "bottom"
+animations_enabled = false
+whichkey_enabled = true
+window_title_position = "top"
+```
+
+Launch with:
+```bash
+tuios --ascii-only
+```
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Keybindings" icon="keyboard" href="/configuration/keybindings">
+    Customize keyboard shortcuts
+  </Card>
+  <Card title="Themes" icon="palette" href="/configuration/themes">
+    Configure color themes
+  </Card>
+</CardGroup>

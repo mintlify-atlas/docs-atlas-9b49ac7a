@@ -1,0 +1,657 @@
+---
+title: 'Session Persistence'
+description: 'Persistent sessions with daemon mode - attach, detach, and resume your work'
+icon: 'server'
+---
+
+## Overview
+
+TUIOS supports **persistent sessions** through a daemon process, similar to tmux or screen. Sessions continue running in the background even when you disconnect, allowing you to reattach later with all windows, content, and state preserved.
+
+<Info>
+Session persistence is powered by a client-server architecture: the daemon manages PTYs and session state, while TUI clients provide the interface.
+</Info>
+
+### Key Benefits
+
+<CardGroup cols={2}>
+  <Card title="Persist Across Disconnects" icon="link-slash">
+    Close your terminal or SSH connection - your session keeps running
+  </Card>
+  <Card title="Resume Anywhere" icon="arrows-rotate">
+    Attach from a different terminal, SSH session, or browser
+  </Card>
+  <Card title="Multi-Client Support" icon="users">
+    Multiple clients can attach to the same session simultaneously
+  </Card>
+  <Card title="State Preservation" icon="floppy-disk">
+    Windows, workspaces, layouts, and terminal content all persist
+  </Card>
+</CardGroup>
+
+## Creating Sessions
+
+### Create New Session
+
+Create a new persistent session and attach to it:
+
+```bash
+tuios new                      # Auto-generated name
+tuios new mysession            # Named session
+tuios new work --theme dracula # With custom theme
+```
+
+This:
+1. Starts the TUIOS daemon (if not running)
+2. Creates a new session
+3. Attaches you to the session
+
+### Daemon Auto-Start
+
+The daemon starts automatically when you create or attach to a session. No need to manually start it.
+
+<Note>
+The daemon runs in the background and continues even after you detach. It only stops when explicitly killed with `tuios kill-server`.
+</Note>
+
+## Attaching to Sessions
+
+### Attach to Existing Session
+
+```bash
+tuios attach                   # Attach to most recent session
+tuios attach mysession         # Attach to named session
+tuios attach mysession -c      # Attach or create if doesn't exist
+```
+
+### Attach from SSH
+
+When connecting via SSH, the session is automatically selected:
+
+```bash
+# On remote server
+tuios ssh --port 2222
+
+# From local machine
+ssh -p 2222 user@server
+# Automatically attaches to your session
+```
+
+Session selection priority for SSH:
+1. SSH username (if not generic like "tuios", "root", "anonymous")
+2. Explicit session name via SSH command (e.g., `ssh host attach mysession`)
+3. First available session or create new
+
+See [SSH Server](#ssh-server) for more details.
+
+## Detaching
+
+Detach from your session while keeping it running:
+
+```bash
+Ctrl+B d                       # Detach (from inside TUIOS)
+```
+
+Or simply close your terminal - the session continues running.
+
+### What Persists
+
+When you detach, everything is preserved:
+- **All windows** with their content and scrollback
+- **All workspaces** with their window arrangements
+- **Tiling configuration** per workspace
+- **Custom layouts** and split configurations
+- **Running processes** in terminal windows
+- **Terminal output** buffered during detachment
+
+## Listing Sessions
+
+View all active sessions:
+
+```bash
+tuios ls
+```
+
+Example output:
+```
+╭───────────────┬─────────┬──────────┬───────────────┬─────────────────╮
+│ NAME          │ WINDOWS │ STATUS   │ CREATED       │ LAST ACTIVE     │
+├───────────────┼─────────┼──────────┼───────────────┼─────────────────┤
+│ work          │ 5       │ attached │ 2 hours ago   │ just now        │
+│ dev           │ 3       │ detached │ 1 day ago     │ 10 mins ago     │
+│ monitoring    │ 2       │ detached │ 3 days ago    │ 1 hour ago      │
+╰───────────────┴─────────┴──────────┴───────────────┴─────────────────╯
+```
+
+## Managing Sessions
+
+### Kill Session
+
+Terminate a session and all its windows:
+
+```bash
+tuios kill-session mysession
+```
+
+This:
+- Closes all windows in the session
+- Terminates all running processes
+- Removes the session from the daemon
+
+### Kill Daemon
+
+Stop the daemon and all sessions:
+
+```bash
+tuios kill-server
+```
+
+<Warning>
+This terminates **all sessions** and their windows. Use with caution.
+</Warning>
+
+## Multi-Client Sessions
+
+Multiple clients can attach to the same session simultaneously, enabling collaborative work or multi-monitor setups.
+
+### Attach Multiple Clients
+
+```bash
+# Terminal 1
+tuios attach shared
+
+# Terminal 2 (same or different machine)
+tuios attach shared
+
+# Browser (via tuios-web)
+# Open http://server:7681
+# Connects to "shared" session
+```
+
+### Multi-Client Behavior
+
+<CardGroup cols={2}>
+  <Card title="Synchronized State" icon="arrows-rotate">
+    All clients see the same windows, workspaces, and content in real-time
+  </Card>
+  <Card title="Shared Input" icon="keyboard">
+    Any client can control windows, create new windows, switch workspaces
+  </Card>
+  <Card title="Independent Workspaces" icon="layer-group">
+    Each client can be on a different workspace in the same session
+  </Card>
+  <Card title="Minimum Terminal Size" icon="compress">
+    Session size is the minimum of all connected clients
+  </Card>
+</CardGroup>
+
+### Terminal Size Coordination
+
+When multiple clients with different terminal sizes attach:
+
+```bash
+# Client 1: 120x40 terminal
+tuios attach shared
+
+# Client 2: 80x24 terminal  
+tuios attach shared
+
+# Session size becomes 80x24 (minimum of both)
+```
+
+All windows are rendered at the minimum size. This ensures content is visible to all clients.
+
+<Tip>
+**Tip for Collaborative Sessions**: Use similar terminal sizes across all clients to avoid layout constraints.
+</Tip>
+
+## Session State
+
+### What's Stored in Sessions
+
+The daemon stores comprehensive session state:
+
+```json
+{
+  "windows": [
+    {
+      "id": "a1b2c3d4",
+      "title": "Terminal a1b2c3d4",
+      "custom_name": "editor",
+      "workspace": 1,
+      "x": 0,
+      "y": 0,
+      "width": 120,
+      "height": 40,
+      "minimized": false,
+      "pty_id": "e5f6g7h8"
+    }
+  ],
+  "current_workspace": 1,
+  "auto_tiling": true,
+  "master_ratio": 0.5,
+  "workspace_trees": { /* BSP trees per workspace */ }
+}
+```
+
+This state is:
+- Updated in real-time as you work
+- Synchronized across all attached clients
+- Restored when you reattach
+- Persisted across daemon restarts (if using state files)
+
+### PTY Management
+
+The daemon owns all PTYs (pseudo-terminals):
+
+- **Creates PTYs** when windows are created
+- **Streams output** to subscribed clients
+- **Buffers output** when no clients are attached
+- **Keeps processes running** even when detached
+
+See [Implementation Details](#implementation-details) for technical information.
+
+## Remote Control
+
+Control sessions remotely using CLI commands:
+
+### Send Keys
+
+Send keystrokes to a running session:
+
+```bash
+# Press 'i' to enter terminal mode
+tuios send-keys i
+
+# Send keys to terminal
+tuios send-keys --literal --raw "echo hello"
+tuios send-keys Enter
+
+# Use prefix key
+tuios send-keys "ctrl+b,n"  # Create new window
+```
+
+### Execute Commands
+
+Run tape commands in a session:
+
+```bash
+# Create a new window
+tuios run-command NewWindow "logs"
+
+# Switch workspace
+tuios run-command SwitchWorkspace 2
+
+# Toggle tiling
+tuios run-command ToggleTiling
+
+# Get window info (JSON for scripting)
+tuios run-command --json GetWindow editor
+```
+
+### Set Configuration
+
+Change runtime settings:
+
+```bash
+# Change dockbar position
+tuios set-config dockbar_position top
+
+# Change border style
+tuios set-config border_style thick
+
+# Toggle animations
+tuios set-config animations toggle
+```
+
+### Query State
+
+Inspect session state for scripting:
+
+```bash
+# List all windows (JSON)
+tuios list-windows --json
+
+# Get focused window details
+tuios get-window --json
+
+# Get session info
+tuios session-info --json
+```
+
+<Tip>
+Remote control commands work even when no TUI client is attached. The daemon stores session state and can query it directly.
+</Tip>
+
+## SSH Server
+
+Run TUIOS as an SSH server for remote access:
+
+```bash
+tuios ssh --port 2222
+```
+
+Connect from another machine:
+
+```bash
+ssh -p 2222 user@server
+```
+
+### SSH Session Selection
+
+By default, SSH sessions use persistent daemon mode. Session selection:
+
+1. **Username-based**: `ssh myproject@server` → attaches to "myproject" session
+2. **Command argument**: `ssh server attach work` → attaches to "work" session
+3. **Default session flag**: `tuios ssh --default-session shared` → all connections share one session
+4. **Auto-create**: If no session exists, creates one
+
+### SSH Ephemeral Mode
+
+For standalone SSH sessions (legacy behavior):
+
+```bash
+tuios ssh --ephemeral
+```
+
+Ephemeral sessions don't persist - they end when the SSH connection closes.
+
+## Web Terminal
+
+Access TUIOS via browser using `tuios-web`:
+
+```bash
+tuios-web --port 7681
+```
+
+Open in browser:
+```
+http://localhost:7681
+```
+
+### Web Session Persistence
+
+By default, web sessions connect to the daemon:
+- Sessions persist when you close the browser tab
+- Multiple tabs can connect to the same session
+- State is preserved across reconnections
+
+### Web Ephemeral Mode
+
+```bash
+tuios-web --ephemeral
+```
+
+Ephemeral web sessions don't persist - they end when the tab closes.
+
+See [Web Documentation](https://github.com/Gaurav-Gosain/tuios/blob/main/docs/WEB.md) for details.
+
+## Practical Workflows
+
+### Long-Running Builds
+
+```bash
+# Start a persistent session
+tuios new build
+
+# Run a long build
+i
+make all  # Takes 30 minutes
+
+# Detach and go to lunch
+Ctrl+B d
+
+# Later, reattach to check progress
+tuios attach build
+```
+
+### Multi-Project Development
+
+```bash
+# Create sessions for each project
+tuios new frontend
+# ... set up frontend workspace ...
+Ctrl+B d
+
+tuios new backend
+# ... set up backend workspace ...
+Ctrl+B d
+
+tuios new infra
+# ... set up infrastructure workspace ...
+Ctrl+B d
+
+# Switch between projects
+tuios attach frontend  # Work on frontend
+tuios attach backend   # Switch to backend
+tuios attach infra     # Check infrastructure
+```
+
+### Pair Programming
+
+```bash
+# Host creates session
+tuios new pair-session
+
+# Partner connects via SSH
+ssh -p 2222 partner@host
+tuios attach pair-session
+
+# Both can see and control the same windows
+# Work together in real-time
+```
+
+### Remote Monitoring
+
+```bash
+# On server: Create monitoring session
+tuios new monitoring
+
+# Set up monitoring windows
+n
+i
+htop
+Ctrl+B d
+
+n
+i
+tail -f /var/log/syslog
+Ctrl+B d
+
+# Detach
+Ctrl+B d
+
+# Later: Check from laptop
+ssh server
+tuios attach monitoring
+```
+
+## Implementation Details
+
+### Architecture
+
+TUIOS uses a client-server architecture for sessions:
+
+```
+┌─────────────┐         ┌──────────────┐
+│ TUI Client  │◄────────┤    Daemon    │
+│ (Your Term) │  Unix   │ (Background) │
+└─────────────┘  Socket └──────────────┘
+                            │
+                            ├─ Session 1
+                            │  ├─ PTY 1 (bash)
+                            │  └─ PTY 2 (vim)
+                            ├─ Session 2
+                            │  └─ PTY 3 (htop)
+                            └─ State Storage
+```
+
+### Source Code
+
+Daemon implementation: `internal/session/daemon.go`
+
+Key components:
+- `Daemon` struct - Manages all sessions and client connections
+- `Session` struct - Container for windows and PTYs
+- `PTY` struct - Pseudo-terminal with process management
+- `Manager` struct - Session lifecycle management
+
+Session protocol: `internal/session/protocol.go`
+- Binary protocol over Unix socket
+- Gob encoding for state messages
+- Optimized PTY output streaming (binary format)
+
+### PTY Ownership
+
+The daemon owns all PTYs:
+- PTYs are created when windows are created (`CreatePTY` message)
+- PTYs stream output to subscribed clients (`SubscribePTY` message)
+- PTYs continue running even when no clients are subscribed
+- PTYs are closed when windows are deleted (`ClosePTY` message)
+
+### State Synchronization
+
+State is synchronized bidirectionally:
+
+**Client → Daemon**:
+- Window create/close/move
+- Workspace switches
+- Layout changes
+- Configuration updates
+
+**Daemon → Client**:
+- PTY output streaming
+- Session state updates
+- Client join/leave notifications
+- Session resize events
+
+All state updates are broadcast to all attached clients in real-time.
+
+### Socket Location
+
+The daemon socket is located at:
+
+- Linux/macOS: `$XDG_RUNTIME_DIR/tuios/tuios.sock` or `/tmp/tuios-$UID.sock`
+- Windows: Named pipe `\\.\pipe\tuios-$UID`
+
+## Configuration
+
+Session behavior is configured in `~/.config/tuios/config.toml`:
+
+```toml
+[session]
+# Socket path (default: auto-detected)
+socket_path = ""  # Leave empty for default
+
+# Session idle timeout (0 = never timeout)
+idle_timeout = 0
+
+# Enable session state persistence to disk
+persist_state = false
+
+# State file location
+state_file = "~/.local/share/tuios/sessions.json"
+```
+
+<Note>
+Persistent state files are not yet implemented. Currently, sessions only persist while the daemon is running.
+</Note>
+
+## Troubleshooting
+
+### Daemon Won't Start
+
+**Check if already running**:
+```bash
+tuios ls  # Should list sessions or show error
+```
+
+**Check socket permissions**:
+```bash
+ls -l /tmp/tuios-*.sock
+# Should be owned by your user
+```
+
+**Kill stale daemon**:
+```bash
+tuios kill-server
+tuios new test  # Should start fresh daemon
+```
+
+### Can't Attach to Session
+
+**Cause**: Session name typo or session doesn't exist.
+
+**Solution**:
+```bash
+# List all sessions
+tuios ls
+
+# Try attaching with correct name
+tuios attach <correct-name>
+```
+
+### Session State Not Preserved
+
+**Cause**: Running in local mode (no daemon).
+
+**Solution**: Use `tuios new` or `tuios attach` instead of just `tuios`.
+
+**Cause**: Daemon was killed.
+
+**Solution**: Sessions only persist while daemon is running. Use `tuios new` to recreate.
+
+### Multiple Clients Have Different Sizes
+
+**Expected behavior**: Session size is minimum of all clients. Smaller client constrains the layout.
+
+**Workaround**: Use similar terminal sizes across all clients, or disconnect the smaller client.
+
+### PTY Output Not Streaming
+
+**Cause**: Client hasn't subscribed to PTY.
+
+**Solution**: This is usually automatic. If windows show no output:
+1. Switch to a different workspace and back
+2. Detach and reattach
+
+**Cause**: PTY process has exited.
+
+**Solution**: The window will show "Process exited" - press `x` to close the window.
+
+## Related Documentation
+
+- [Workspaces](/features/workspaces) - Workspace state persists in sessions
+- [Tiling](/features/tiling) - Tiling configuration persists per workspace
+- [CLI Reference](/cli/main-commands) - Complete command reference for session management
+- [Multi-Client Guide](https://github.com/Gaurav-Gosain/tuios/blob/main/docs/MULTI_CLIENT.md) - Technical details on multi-client sessions
+
+## Comparison with Other Tools
+
+### TUIOS Sessions vs. tmux Sessions
+
+<CardGroup cols={2}>
+  <Card title="tmux" icon="terminal">
+    - Text-based protocol
+    - Panes share terminal dimensions
+    - Requires tmux on remote server
+    - Complex configuration language
+  </Card>
+  <Card title="TUIOS" icon="server">
+    - Binary protocol (faster)
+    - Windows have independent sizes
+    - Single binary deployment
+    - TOML configuration
+  </Card>
+</CardGroup>
+
+### TUIOS Sessions vs. screen Sessions
+
+TUIOS provides:
+- **Modern UI** with mouse support
+- **Multiple workspaces** (screen has one)
+- **BSP tiling** (screen has manual splits)
+- **Remote control API** for scripting
+- **Multi-client support** (screen supports but less robust)
+
+Both provide session persistence and detach/reattach workflow.

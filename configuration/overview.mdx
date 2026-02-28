@@ -1,0 +1,213 @@
+---
+title: Configuration Overview
+description: Understanding TUIOS configuration system and file structure
+---
+
+TUIOS uses TOML format for configuration, providing a clean and human-readable way to customize keybindings, appearance, and behavior.
+
+## Configuration File Location
+
+TUIOS stores its configuration at:
+
+```bash
+$XDG_CONFIG_HOME/tuios/config.toml
+```
+
+Typically this resolves to:
+- **Linux/macOS**: `~/.config/tuios/config.toml`
+- **Windows**: `%APPDATA%\tuios\config.toml`
+
+### Finding Your Config Path
+
+Use the CLI to display the exact path:
+
+```bash
+tuios config path
+```
+
+## Configuration Commands
+
+TUIOS provides dedicated commands for managing configuration:
+
+### Edit Configuration
+
+Open your config file in your default editor:
+
+```bash
+tuios config edit
+```
+
+This respects `$EDITOR` and `$VISUAL` environment variables, falling back to common editors (vim, vi, nano, emacs).
+
+### View Configuration Path
+
+Display the config file location:
+
+```bash
+tuios config path
+```
+
+### Reset to Defaults
+
+Reset your configuration to default settings:
+
+```bash
+tuios config reset
+```
+
+<Warning>
+This will overwrite your existing configuration after confirmation.
+</Warning>
+
+## Configuration Structure
+
+The configuration file is organized into three main sections:
+
+```toml config.toml
+[appearance]
+# Visual settings: borders, themes, dockbar, animations
+
+[keybindings]
+# Keybinding customization and leader key
+
+[daemon]
+# Daemon-related settings: logging, protocol, socket path
+```
+
+### Appearance Section
+
+Controls visual appearance:
+
+```toml config.toml
+[appearance]
+border_style = "rounded"              # Window border style
+theme = "dracula"                     # Color theme
+dockbar_position = "bottom"           # Dockbar placement
+scrollback_lines = 10000              # Terminal history
+window_title_position = "bottom"      # Window title location
+animations_enabled = true             # UI animations
+whichkey_enabled = true               # Which-key popup
+hide_window_buttons = false           # Window control buttons
+hide_clock = false                    # Clock overlay
+```
+
+### Keybindings Section
+
+Customize keyboard shortcuts:
+
+```toml config.toml
+[keybindings]
+leader_key = "ctrl+b"                 # Leader/prefix key
+
+[keybindings.window_management]
+new_window = ["n"]
+close_window = ["w", "x"]
+rename_window = ["r"]
+
+[keybindings.workspaces]
+switch_workspace_1 = ["alt+1"]
+switch_workspace_2 = ["alt+2"]
+```
+
+See [Keybindings](/configuration/keybindings) for complete customization details.
+
+### Daemon Section
+
+Manage daemon behavior:
+
+```toml config.toml
+[daemon]
+log_level = "off"                     # Debug logging level
+default_codec = "gob"                 # Protocol codec (gob/json)
+socket_path = ""                      # Custom socket path
+```
+
+## Default Configuration
+
+On first run, TUIOS automatically creates a default configuration file with:
+
+- Rounded borders
+- Bottom dockbar
+- 10,000 lines of scrollback
+- `Ctrl+B` leader key (tmux-style)
+- Default keybindings for all actions
+- Animations enabled
+
+## CLI Flags Override Config
+
+Command-line flags take precedence over config file settings:
+
+```bash
+# Override theme from config
+tuios --theme nord
+
+# Override border style
+tuios --border-style thick
+
+# Disable animations
+tuios --no-animations
+
+# Change dockbar position
+tuios --dockbar-position top
+```
+
+See [Settings](/configuration/settings) for all available CLI flags.
+
+## Configuration Validation
+
+TUIOS validates your configuration on startup:
+
+- **Errors**: Invalid values prevent startup and display helpful messages
+- **Warnings**: Non-fatal issues are logged but don't prevent startup
+- **Missing values**: Auto-filled with defaults
+
+### Example Validation Output
+
+```
+Config error in [appearance]: border_style - Invalid border style "invalid"
+Configuration has 1 error(s), please fix and restart
+```
+
+## Platform-Specific Defaults
+
+### macOS vs Linux Keybindings
+
+Some keybindings have platform-specific defaults:
+
+**Workspace switching:**
+- macOS: `opt+1` through `opt+9`
+- Linux: `alt+1` through `alt+9`
+
+**Terminal mode:**
+- macOS: `opt+tab` (next window), `opt+esc` (exit mode)
+- Linux: `alt+n` (next window), `alt+esc` (exit mode)
+
+The config file uses the natural key names for your platform.
+
+## Configuration Auto-Reload
+
+Changes to `config.toml` require restarting TUIOS. Some settings can be changed at runtime using:
+
+```bash
+tuios set-config <path> <value>
+```
+
+Supported runtime changes:
+- `dockbar_position`
+- `border_style`
+- `animations`
+- `hide_window_buttons`
+
+## Next Steps
+
+<CardGroup cols={3}>
+  <Card title="Keybindings" icon="keyboard" href="/configuration/keybindings">
+    Customize keyboard shortcuts
+  </Card>
+  <Card title="Themes" icon="palette" href="/configuration/themes">
+    Configure color themes
+  </Card>
+  <Card title="Settings" icon="gear" href="/configuration/settings">
+    Explore all settings and CLI flags
+  </Card>
+</CardGroup>

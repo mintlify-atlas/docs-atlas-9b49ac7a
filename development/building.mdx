@@ -1,0 +1,354 @@
+---
+title: Building from Source
+description: Instructions for building TUIOS and tuios-web from source
+---
+
+This guide covers building TUIOS from source, including both the main `tuios` binary and the `tuios-web` web terminal server.
+
+## Prerequisites
+
+### Required
+
+- **Go 1.25+** - TUIOS uses Go 1.25.0 or later
+- **Git** - For cloning the repository
+- **A terminal with true color support** - Most modern terminals work
+
+### Optional
+
+- **Docker** - For containerized builds
+- **Nix** - For Nix-based development
+
+## Clone the Repository
+
+Clone the TUIOS repository from GitHub:
+
+```bash
+git clone https://github.com/gaurav-gosain/tuios.git
+cd tuios
+```
+
+## Building TUIOS
+
+### Build the Main Binary
+
+Build the `tuios` terminal window manager:
+
+```bash
+go build -o tuios ./cmd/tuios
+```
+
+The binary will be created in the current directory. Run it:
+
+```bash
+./tuios
+```
+
+### Build tuios-web
+
+Build the `tuios-web` web terminal server (separate binary for security isolation):
+
+```bash
+go build -o tuios-web ./cmd/tuios-web
+```
+
+Run the web server:
+
+```bash
+./tuios-web
+# Opens on http://localhost:7681
+```
+
+### Build Both Binaries
+
+Build both binaries at once:
+
+```bash
+go build -o tuios ./cmd/tuios
+go build -o tuios-web ./cmd/tuios-web
+```
+
+### Install to GOPATH
+
+Install binaries to `$GOPATH/bin` (or `$GOBIN`):
+
+```bash
+# Install tuios
+go install ./cmd/tuios
+
+# Install tuios-web
+go install ./cmd/tuios-web
+```
+
+Ensure `$GOPATH/bin` is in your `PATH` to run the commands directly:
+
+```bash
+tuios
+tuios-web
+```
+
+## Development Builds
+
+### Run Without Building
+
+Run directly with `go run`:
+
+```bash
+# Run tuios
+go run ./cmd/tuios
+
+# Run tuios-web
+go run ./cmd/tuios-web
+
+# Run with debug logging
+go run ./cmd/tuios --debug
+go run ./cmd/tuios-web --debug
+```
+
+### Build with Debug Symbols
+
+Build with full debug information:
+
+```bash
+go build -gcflags="all=-N -l" -o tuios ./cmd/tuios
+```
+
+### Build with Race Detection
+
+Build with race detector (slower but catches race conditions):
+
+```bash
+go build -race -o tuios ./cmd/tuios
+```
+
+<Warning>
+  Race detection significantly impacts performance. Only use for testing, not production.
+</Warning>
+
+## Development with Nix
+
+TUIOS includes Nix flake support for reproducible builds.
+
+### Enter Development Shell
+
+The development shell includes Go, dependencies, and development tools:
+
+```bash
+nix develop
+```
+
+Inside the shell, build and run normally:
+
+```bash
+go build -o tuios ./cmd/tuios
+./tuios
+```
+
+### Build with Nix
+
+Build the package using Nix:
+
+```bash
+nix build
+```
+
+The built binary is in `./result/bin/tuios`.
+
+### Run Directly
+
+Run TUIOS without building:
+
+```bash
+nix run
+```
+
+### Run from GitHub
+
+Run the latest version directly from GitHub:
+
+```bash
+nix run github:Gaurav-Gosain/tuios#tuios
+```
+
+## Docker Build
+
+### Build Docker Image
+
+Build the TUIOS Docker image:
+
+```bash
+docker build -t tuios .
+```
+
+### Run in Container
+
+Run TUIOS in an interactive container:
+
+```bash
+docker run -it --rm tuios
+```
+
+### Use Official Image
+
+Use the pre-built image from GitHub Container Registry:
+
+```bash
+docker run -it --rm ghcr.io/gaurav-gosain/tuios:latest
+```
+
+## Build Options and Flags
+
+### Optimization Levels
+
+```bash
+# Default optimization
+go build -o tuios ./cmd/tuios
+
+# Disable optimizations (for debugging)
+go build -gcflags="-N -l" -o tuios ./cmd/tuios
+
+# Aggressive optimization (smaller binary)
+go build -ldflags="-s -w" -o tuios ./cmd/tuios
+```
+
+### Static Linking
+
+Build a fully static binary (useful for containers):
+
+```bash
+CGO_ENABLED=0 go build -o tuios ./cmd/tuios
+```
+
+### Cross-Compilation
+
+Build for different platforms:
+
+```bash
+# Linux (amd64)
+GOOS=linux GOARCH=amd64 go build -o tuios-linux-amd64 ./cmd/tuios
+
+# macOS (arm64)
+GOOS=darwin GOARCH=arm64 go build -o tuios-darwin-arm64 ./cmd/tuios
+
+# Windows
+GOOS=windows GOARCH=amd64 go build -o tuios.exe ./cmd/tuios
+
+# FreeBSD
+GOOS=freebsd GOARCH=amd64 go build -o tuios-freebsd ./cmd/tuios
+```
+
+## Dependencies
+
+### Install Dependencies
+
+Go modules handle dependencies automatically. Download all dependencies:
+
+```bash
+go mod download
+```
+
+### Update Dependencies
+
+Update all dependencies to latest versions:
+
+```bash
+go get -u ./...
+go mod tidy
+```
+
+### Vendor Dependencies
+
+Copy dependencies into `vendor/` directory:
+
+```bash
+go mod vendor
+```
+
+Build using vendored dependencies:
+
+```bash
+go build -mod=vendor -o tuios ./cmd/tuios
+```
+
+## Key Dependencies
+
+TUIOS is built on the Charm stack:
+
+- **[Bubble Tea v2](https://github.com/charmbracelet/bubbletea)** - Event-driven TUI framework
+- **[Lipgloss v2](https://github.com/charmbracelet/lipgloss)** - Terminal styling
+- **[Wish v2](https://github.com/charmbracelet/wish)** - SSH server
+- **[xpty](https://github.com/charmbracelet/x/xpty)** - Cross-platform PTY interface
+- **[Ultraviolet](https://github.com/charmbracelet/ultraviolet)** - Terminal emulation
+- **[Cobra](https://github.com/spf13/cobra)** - CLI command framework
+
+<Info>
+  As of December 2025, Charm packages migrated from `github.com/charmbracelet/*` to `charm.land/*` module paths.
+</Info>
+
+## Build Troubleshooting
+
+### Go Version Too Old
+
+If you see version errors:
+
+```bash
+go version
+# Should be 1.25.0 or later
+```
+
+Install the latest Go from [go.dev/dl](https://go.dev/dl/).
+
+### Missing Dependencies
+
+If imports fail, download dependencies:
+
+```bash
+go mod download
+go mod tidy
+```
+
+### Build Cache Issues
+
+Clear the build cache if you encounter strange errors:
+
+```bash
+go clean -cache -modcache
+go build -o tuios ./cmd/tuios
+```
+
+### Platform-Specific Issues
+
+**Linux:** Ensure you have basic build tools:
+```bash
+sudo apt-get install build-essential  # Debian/Ubuntu
+sudo yum groupinstall "Development Tools"  # RHEL/CentOS
+```
+
+**macOS:** Install Xcode Command Line Tools:
+```bash
+xcode-select --install
+```
+
+**Windows:** Use Git Bash or WSL for the best experience.
+
+## Verifying the Build
+
+Check that the binary works:
+
+```bash
+# Show version
+./tuios version
+
+# Show help
+./tuios --help
+
+# Run TUIOS
+./tuios
+```
+
+## Next Steps
+
+After building TUIOS:
+
+- **[Testing Guide](/development/testing)** - Run tests and add new ones
+- **[Contributing Guide](/development/contributing)** - Submit changes upstream
+- **[Architecture Guide](/development/architecture)** - Understand the codebase structure

@@ -1,0 +1,438 @@
+---
+title: Keybindings
+description: Customize TUIOS keyboard shortcuts and leader key configuration
+---
+
+TUIOS provides comprehensive keybinding customization through TOML configuration. All keyboard shortcuts can be remapped to suit your workflow.
+
+## TOML Keybinding Format
+
+Keybindings are defined in the `[keybindings]` section of `config.toml`:
+
+```toml config.toml
+[keybindings]
+leader_key = "ctrl+b"
+
+[keybindings.window_management]
+new_window = ["n"]
+close_window = ["w", "x"]
+rename_window = ["r"]
+next_window = ["tab"]
+prev_window = ["shift+tab"]
+```
+
+### Key Format
+
+**Single keys:**
+```toml
+key = ["a", "b", "c"]        # Letters
+key = ["1", "2", "3"]        # Numbers
+key = ["enter", "esc", "tab"] # Special keys
+```
+
+**Key combinations:**
+```toml
+key = ["ctrl+b"]             # Modifiers + key
+key = ["alt+1", "opt+1"]     # Platform variants
+key = ["shift+enter"]        # Shifted special keys
+```
+
+**Multiple bindings per action:**
+```toml
+close_window = ["w", "x"]    # Both 'w' and 'x' work
+```
+
+### Supported Modifiers
+
+- `ctrl` / `control` - Control key
+- `alt` - Alt key (Linux/Windows)
+- `opt` / `option` - Option key (macOS)
+- `shift` - Shift key
+- `super` / `cmd` - Command/Super/Windows key
+- `meta` - Meta key
+
+### Special Keys
+
+```toml
+# Navigation
+"up", "down", "left", "right"
+"home", "end"
+"pageup", "pagedown"
+
+# Editing
+"enter", "return"
+"backspace", "delete"
+"tab"
+"space"
+
+# Control
+"esc", "escape"
+"f1" through "f12"
+```
+
+## Leader Key Configuration
+
+The leader key (prefix key) activates command mode, similar to tmux:
+
+```toml config.toml
+[keybindings]
+leader_key = "ctrl+b"  # Default
+```
+
+### Common Leader Key Choices
+
+```toml
+leader_key = "ctrl+b"    # tmux-style (default)
+leader_key = "ctrl+a"    # Alternative tmux-style
+leader_key = "ctrl+space" # Spacemacs-style
+leader_key = "alt+space"  # i3wm-style
+```
+
+After pressing the leader key, TUIOS enters prefix mode and waits for the next command.
+
+## Keybinding Sections
+
+### Window Management
+
+Window lifecycle and navigation:
+
+```toml config.toml
+[keybindings.window_management]
+new_window = ["n"]
+close_window = ["w", "x"]
+rename_window = ["r"]
+minimize_window = ["m"]
+restore_all = ["M"]
+next_window = ["tab"]
+prev_window = ["shift+tab"]
+select_window_1 = ["1"]
+select_window_2 = ["2"]
+# ... through select_window_9
+```
+
+### Workspaces
+
+Multi-workspace keybindings (platform-specific defaults):
+
+```toml config.toml
+[keybindings.workspaces]
+# Switch to workspace
+switch_workspace_1 = ["alt+1"]  # Linux: alt, macOS: opt
+switch_workspace_2 = ["alt+2"]
+# ... through switch_workspace_9
+
+# Move window and follow
+move_and_follow_1 = ["alt+shift+1"]
+move_and_follow_2 = ["alt+shift+2"]
+# ... through move_and_follow_9
+```
+
+### Layout & Tiling
+
+Window positioning and tiling controls:
+
+```toml config.toml
+[keybindings.layout]
+# Snapping
+snap_left = ["h"]
+snap_right = ["l"]
+snap_fullscreen = ["f"]
+unsnap = ["u"]
+snap_corner_1 = ["1"]  # Top-left
+snap_corner_2 = ["2"]  # Top-right
+snap_corner_3 = ["3"]  # Bottom-left
+snap_corner_4 = ["4"]  # Bottom-right
+
+# Tiling
+toggle_tiling = ["t"]
+swap_left = ["H", "ctrl+left"]
+swap_right = ["L", "ctrl+right"]
+swap_up = ["K", "ctrl+up"]
+swap_down = ["J", "ctrl+down"]
+
+# BSP Splits
+split_horizontal = ["-"]
+split_vertical = ["|", "\\"]
+rotate_split = ["R"]
+equalize_splits = ["="]
+
+# Preselect (platform-specific)
+preselect_left = ["alt+h"]   # Linux: alt, macOS: opt
+preselect_right = ["alt+l"]
+preselect_up = ["alt+k"]
+preselect_down = ["alt+j"]
+```
+
+### Mode Control
+
+Switch between modes:
+
+```toml config.toml
+[keybindings.mode_control]
+enter_terminal_mode = ["i", "enter"]
+enter_window_mode = ["esc"]
+toggle_help = ["?"]
+quit = ["q"]
+```
+
+### Navigation
+
+Cursor movement in window management mode:
+
+```toml config.toml
+[keybindings.navigation]
+nav_up = ["up"]
+nav_down = ["down"]
+nav_left = ["left"]
+nav_right = ["right"]
+extend_up = ["shift+up"]
+extend_down = ["shift+down"]
+extend_left = ["shift+left"]
+extend_right = ["shift+right"]
+```
+
+### Prefix Mode Keybindings
+
+Actions triggered after pressing the leader key:
+
+```toml config.toml
+[keybindings.prefix_mode]
+prefix_new_window = ["c"]
+prefix_close_window = ["x"]
+prefix_rename_window = [",", "r"]
+prefix_next_window = ["n", "tab"]
+prefix_prev_window = ["p", "shift+tab"]
+prefix_select_0 = ["0"]
+prefix_select_1 = ["1"]
+# ... through prefix_select_9
+prefix_toggle_tiling = ["space"]
+prefix_workspace = ["w"]      # Enter workspace submenu
+prefix_minimize = ["m"]       # Enter minimize submenu
+prefix_window = ["t"]         # Enter window submenu
+prefix_detach = ["d", "esc"]
+prefix_selection = ["["]
+prefix_help = ["?"]
+prefix_debug = ["D"]
+prefix_tape = ["T"]
+prefix_quit = ["q"]
+prefix_fullscreen = ["z"]
+prefix_split_horizontal = ["-"]
+prefix_split_vertical = ["|", "\\"]
+prefix_rotate_split = ["R"]
+prefix_equalize_splits = ["="]
+prefix_scrollback = ["s"]
+```
+
+### Submenu Prefixes
+
+Workspace, minimize, window, debug, and tape submenus:
+
+```toml config.toml
+[keybindings.workspace_prefix]
+# Ctrl+B, w, then:
+workspace_prefix_switch_1 = ["1"]
+workspace_prefix_move_1 = ["!"]  # Move window to workspace 1
+workspace_prefix_cancel = ["esc"]
+
+[keybindings.minimize_prefix]
+# Ctrl+B, m, then:
+minimize_prefix_focused = ["m"]
+minimize_prefix_restore_1 = ["1"]
+minimize_prefix_restore_all = ["M"]
+minimize_prefix_cancel = ["esc"]
+
+[keybindings.window_prefix]
+# Ctrl+B, t, then:
+window_prefix_new = ["n"]
+window_prefix_close = ["x"]
+window_prefix_rename = ["r"]
+window_prefix_tiling = ["t"]
+window_prefix_cancel = ["esc"]
+
+[keybindings.debug_prefix]
+# Ctrl+B, D, then:
+debug_prefix_logs = ["l"]
+debug_prefix_cache = ["c"]
+debug_prefix_animations = ["a"]
+debug_prefix_cancel = ["esc"]
+
+[keybindings.tape_prefix]
+# Ctrl+B, T, then:
+tape_prefix_manager = ["m"]
+tape_prefix_record = ["r"]
+tape_prefix_stop = ["s"]
+tape_prefix_cancel = ["esc"]
+```
+
+### Terminal Mode
+
+Direct keybindings that work without prefix in terminal mode:
+
+```toml config.toml
+[keybindings.terminal_mode]
+# Linux defaults
+terminal_next_window = ["alt+n"]
+terminal_prev_window = ["alt+p"]
+terminal_exit_mode = ["alt+esc"]
+
+# macOS defaults
+terminal_next_window = ["opt+tab"]
+terminal_prev_window = ["opt+shift+tab"]
+terminal_exit_mode = ["opt+esc"]
+```
+
+## Action Registry
+
+All available actions are defined in the keybind registry. Use the CLI to list them:
+
+```bash
+tuios keybinds list
+```
+
+Output shows:
+- Action name
+- Bound keys
+- Description
+- Context (mode/prefix)
+
+### List Only Custom Keybindings
+
+Show keybindings that differ from defaults:
+
+```bash
+tuios keybinds list-custom
+```
+
+## Customization Examples
+
+### Vim-Style Navigation
+
+```toml config.toml
+[keybindings.navigation]
+nav_up = ["k"]
+nav_down = ["j"]
+nav_left = ["h"]
+nav_right = ["l"]
+```
+
+### Alternative Leader Key
+
+```toml config.toml
+[keybindings]
+leader_key = "ctrl+a"  # Screen-style
+```
+
+### Quick Window Access
+
+```toml config.toml
+[keybindings.window_management]
+# Use Alt+number for direct window selection
+select_window_1 = ["alt+1", "1"]
+select_window_2 = ["alt+2", "2"]
+select_window_3 = ["alt+3", "3"]
+```
+
+### macOS-Friendly Bindings
+
+```toml config.toml
+[keybindings]
+leader_key = "cmd+space"
+
+[keybindings.window_management]
+new_window = ["cmd+t"]
+close_window = ["cmd+w"]
+next_window = ["cmd+tab"]
+prev_window = ["cmd+shift+tab"]
+```
+
+## Kitty Keyboard Protocol
+
+TUIOS supports the [Kitty keyboard protocol](https://sw.kovidgoyal.net/kitty/keyboard-protocol/) for enhanced key handling:
+
+- Disambiguates keys that look identical in legacy terminal protocols
+- Allows binding `Ctrl+I` separately from `Tab`
+- Supports `Ctrl+Shift+letter` combinations
+- Handles Unicode key events
+
+### Kitty Protocol Benefits
+
+**Without Kitty Protocol:**
+- `Ctrl+I` and `Tab` are indistinguishable
+- `Ctrl+M` and `Enter` are the same
+- `Ctrl+Shift+C` doesn't work reliably
+
+**With Kitty Protocol:**
+- All key combinations are unique
+- Full modifier support
+- Better international keyboard support
+
+### Terminal Support
+
+Kitty protocol is supported by:
+- Kitty
+- WezTerm
+- foot
+- Contour
+- Alacritty (experimental)
+
+Older terminals fallback to legacy key handling automatically.
+
+## Key Normalization
+
+TUIOS normalizes keys across platforms:
+
+- `opt+N` → `alt+N` (macOS Option key)
+- Case-insensitive for modifiers: `Ctrl+B` = `ctrl+b`
+- Unicode variants: macOS `opt+1` → `¡` automatically mapped
+
+## Platform Differences
+
+### macOS
+
+```toml config.toml
+[keybindings.workspaces]
+switch_workspace_1 = ["opt+1"]  # Option key
+
+[keybindings.terminal_mode]
+terminal_next_window = ["opt+tab"]
+```
+
+### Linux/Windows
+
+```toml config.toml
+[keybindings.workspaces]
+switch_workspace_1 = ["alt+1"]  # Alt key
+
+[keybindings.terminal_mode]
+terminal_next_window = ["alt+n"]
+```
+
+## Debugging Keybindings
+
+Enable the showkeys overlay to see key events:
+
+```bash
+tuios --show-keys
+```
+
+Or toggle at runtime:
+```
+Ctrl+B, D, k
+```
+
+This displays:
+- Raw key events
+- Parsed key names
+- Modifier states
+- Whether Kitty protocol is active
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Themes" icon="palette" href="/configuration/themes">
+    Configure color themes
+  </Card>
+  <Card title="Settings" icon="gear" href="/configuration/settings">
+    Explore other settings
+  </Card>
+</CardGroup>

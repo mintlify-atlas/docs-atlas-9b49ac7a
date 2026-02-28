@@ -1,0 +1,349 @@
+---
+title: Themes
+description: Color themes and terminal theming in TUIOS
+---
+
+TUIOS supports color themes that apply to both the UI and terminal emulator, providing a consistent visual experience across your workflow.
+
+## Theme System
+
+TUIOS uses 16 ANSI color theming powered by [bubbletint](https://github.com/lrstanley/bubbletint):
+
+- **ANSI colors 0-15**: Themed by TUIOS
+- **RGB/truecolor (256-color)**: Pass through unchanged
+- **UI elements**: Use theme colors for borders, dockbar, etc.
+
+## Available Themes
+
+### Built-in Themes
+
+TUIOS includes many popular themes:
+
+- `dracula` - Dracula color scheme
+- `nord` - Nord color palette
+- `tokyonight` - Tokyo Night
+- `catppuccin-mocha` - Catppuccin Mocha
+- `gruvbox` - Gruvbox
+- `solarized-dark` - Solarized Dark
+- `solarized-light` - Solarized Light
+- `one-dark` - Atom One Dark
+- `github-dark` - GitHub Dark
+- `monokai` - Monokai
+- and many more...
+
+### List All Themes
+
+View all available themes:
+
+```bash
+tuios --list-themes
+```
+
+Output:
+```
+dracula
+nord
+tokyonight
+catppuccin-mocha
+gruvbox
+solarized-dark
+...
+```
+
+## Using Themes
+
+### Command-Line Flag
+
+Specify a theme when launching TUIOS:
+
+```bash
+tuios --theme dracula
+```
+
+### Configuration File
+
+Set a default theme in `config.toml`:
+
+```toml config.toml
+[appearance]
+theme = "nord"
+```
+
+### No Theme (Default)
+
+Leave empty to use your terminal's native colors:
+
+```toml config.toml
+[appearance]
+theme = ""  # No theming
+```
+
+Or launch without the flag:
+
+```bash
+tuios  # Uses terminal colors
+```
+
+## Theme Preview
+
+Preview a theme's 16 ANSI colors before using it:
+
+```bash
+tuios --preview-theme dracula
+```
+
+Output shows:
+- Color name
+- ANSI code (0-15)
+- Hex value
+- Visual color swatch
+
+### Interactive Theme Selection
+
+Use with `fzf` for interactive selection:
+
+```bash
+tuios --theme $(tuios --list-themes | fzf --preview 'tuios --preview-theme {}')
+```
+
+This provides:
+- Searchable theme list
+- Live color preview
+- Selection with Enter
+
+## Custom Themes
+
+Create your own themes by placing JSON files in:
+
+```bash
+~/.config/tuios/themes/
+```
+
+### Custom Theme Format
+
+Create a theme JSON file (e.g., `my-theme.json`):
+
+```json my-theme.json
+{
+  "id": "my-theme",
+  "display_name": "My Custom Theme",
+  "fg": "#e5e5e5",
+  "bg": "#1a1a1a",
+  "cursor": "#00ff00",
+  "black": "#000000",
+  "red": "#cd0000",
+  "green": "#00cd00",
+  "yellow": "#cdcd00",
+  "blue": "#0000ee",
+  "purple": "#cd00cd",
+  "cyan": "#00cdcd",
+  "white": "#e5e5e5",
+  "bright_black": "#7f7f7f",
+  "bright_red": "#ff0000",
+  "bright_green": "#00ff00",
+  "bright_yellow": "#ffff00",
+  "bright_blue": "#5c5cff",
+  "bright_purple": "#ff00ff",
+  "bright_cyan": "#00ffff",
+  "bright_white": "#ffffff"
+}
+```
+
+### Theme Fields
+
+**Required:**
+- `id` - Unique theme identifier (derived from filename if omitted)
+- ANSI colors: `black`, `red`, `green`, `yellow`, `blue`, `purple`, `cyan`, `white`
+
+**Optional:**
+- `display_name` - Human-readable name (defaults to `id`)
+- `fg` - Foreground color (default: `#e5e5e5`)
+- `bg` - Background color (default: `#000000`)
+- `cursor` - Cursor color (defaults to `fg`)
+- `bright_*` colors - Bright variants (default to normal colors if omitted)
+
+### Using Custom Themes
+
+Once created, use like any built-in theme:
+
+```bash
+tuios --theme my-theme
+```
+
+or in config:
+
+```toml config.toml
+[appearance]
+theme = "my-theme"
+```
+
+## What Gets Themed
+
+### Terminal Emulator
+
+- ANSI colors 0-15 in terminal output
+- Terminal cursor color
+- Default foreground/background
+
+### UI Elements
+
+- Window borders (focused/unfocused)
+- Dockbar indicators
+- Mode colors (terminal, window, copy)
+- Help menu styling
+- Notification colors
+- Copy mode cursor and selection
+
+### What Doesn't Get Themed
+
+- RGB/truecolor output from applications
+- 256-color palette (colors 16-255)
+- Application-specific colors
+- External tool colors
+
+Applications using true color (like neovim with RGB themes) will display their own colors on top of TUIOS theming.
+
+## 16 ANSI Color Mapping
+
+TUIOS applies themes to the standard 16 ANSI colors:
+
+| Index | Color | ANSI Code |
+|-------|-------|----------|
+| 0 | Black | `\e[30m` |
+| 1 | Red | `\e[31m` |
+| 2 | Green | `\e[32m` |
+| 3 | Yellow | `\e[33m` |
+| 4 | Blue | `\e[34m` |
+| 5 | Purple | `\e[35m` |
+| 6 | Cyan | `\e[36m` |
+| 7 | White | `\e[37m` |
+| 8 | Bright Black | `\e[90m` |
+| 9 | Bright Red | `\e[91m` |
+| 10 | Bright Green | `\e[92m` |
+| 11 | Bright Yellow | `\e[93m` |
+| 12 | Bright Blue | `\e[94m` |
+| 13 | Bright Purple | `\e[95m` |
+| 14 | Bright Cyan | `\e[96m` |
+| 15 | Bright White | `\e[97m` |
+
+## Example: Creating a Nord Theme
+
+Here's how to create a custom Nord-inspired theme:
+
+```json nord-custom.json
+{
+  "id": "nord-custom",
+  "display_name": "Nord Custom",
+  "fg": "#D8DEE9",
+  "bg": "#2E3440",
+  "cursor": "#88C0D0",
+  "black": "#3B4252",
+  "red": "#BF616A",
+  "green": "#A3BE8C",
+  "yellow": "#EBCB8B",
+  "blue": "#81A1C1",
+  "purple": "#B48EAD",
+  "cyan": "#88C0D0",
+  "white": "#E5E9F0",
+  "bright_black": "#4C566A",
+  "bright_red": "#BF616A",
+  "bright_green": "#A3BE8C",
+  "bright_yellow": "#EBCB8B",
+  "bright_blue": "#81A1C1",
+  "bright_purple": "#B48EAD",
+  "bright_cyan": "#8FBCBB",
+  "bright_white": "#ECEFF4"
+}
+```
+
+Save to `~/.config/tuios/themes/nord-custom.json`, then:
+
+```bash
+tuios --theme nord-custom
+```
+
+## Converting Terminal Themes
+
+Many terminal theme formats can be converted to TUIOS JSON:
+
+### From iTerm2/Terminal.app
+
+1. Find the ANSI color hex values
+2. Map to the JSON structure above
+3. Save as `theme-name.json`
+
+### From Base16
+
+Base16 themes map directly:
+
+```json
+{
+  "black": "base00",
+  "red": "base08",
+  "green": "base0B",
+  "yellow": "base0A",
+  "blue": "base0D",
+  "purple": "base0E",
+  "cyan": "base0C",
+  "white": "base05",
+  "bright_black": "base03",
+  "bright_red": "base08",
+  "bright_green": "base0B",
+  "bright_yellow": "base0A",
+  "bright_blue": "base0D",
+  "bright_purple": "base0E",
+  "bright_cyan": "base0C",
+  "bright_white": "base07"
+}
+```
+
+## Theme Troubleshooting
+
+### Theme Not Found
+
+If a theme isn't recognized:
+
+1. Check the theme name: `tuios --list-themes`
+2. Verify custom theme file exists: `ls ~/.config/tuios/themes/`
+3. Validate JSON syntax: `cat ~/.config/tuios/themes/my-theme.json | jq`
+
+### Colors Look Wrong
+
+- Ensure your terminal supports 24-bit color
+- Check that the theme file uses hex colors (not color names)
+- Verify `"id"` matches the filename (minus `.json`)
+
+### Custom Theme Not Loading
+
+Check for JSON errors:
+
+```bash
+jq . ~/.config/tuios/themes/my-theme.json
+```
+
+Common issues:
+- Missing commas
+- Trailing commas
+- Unquoted keys/values
+- Invalid hex colors (must be `#RRGGBB`)
+
+## Theme and Terminal Compatibility
+
+TUIOS theming works best with:
+
+- **24-bit color terminals** (true color support)
+- **Modern terminal emulators** (Kitty, WezTerm, Alacritty, iTerm2)
+- **Applications using ANSI colors** (most CLI tools)
+
+Legacy 256-color and 8-color terminals are supported but may not display themes accurately.
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Settings" icon="gear" href="/configuration/settings">
+    Explore all CLI flags and settings
+  </Card>
+  <Card title="Overview" icon="book" href="/configuration/overview">
+    Return to configuration overview
+  </Card>
+</CardGroup>

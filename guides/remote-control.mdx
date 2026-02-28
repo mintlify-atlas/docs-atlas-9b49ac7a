@@ -1,0 +1,729 @@
+---
+title: "Remote Control"
+description: "Control running TUIOS sessions from the command line"
+icon: "gamepad"
+---
+
+## Overview
+
+TUIOS remote control lets you **manipulate running sessions** without attaching to them. Send keystrokes, execute commands, change settings, and query session state—all from the CLI.
+
+<Info>
+Remote control requires the daemon to be running and a session to be active. The TUI client processes commands via the daemon.
+</Info>
+
+---
+
+## Send Keys
+
+Send keystrokes to a running session.
+
+### Basic Usage
+
+```bash
+tuios send-keys <keys>
+```
+
+By default, keys are sent to **TUIOS itself** (for window management, mode switching, etc.).
+
+### Key Format
+
+**Single keys:**
+```bash
+tuios send-keys i          # Press 'i' (enter terminal mode)
+tuios send-keys Enter      # Press Enter
+tuios send-keys Escape     # Press Escape
+tuios send-keys Space      # Press Space
+```
+
+**Key combinations:**
+```bash
+tuios send-keys ctrl+b     # Prefix key
+tuios send-keys alt+1      # Switch to workspace 1  
+tuios send-keys shift+Enter
+```
+
+**Sequences (space or comma separated):**
+```bash
+tuios send-keys "ctrl+b n"     # Prefix + new window
+tuios send-keys "ctrl+b,q"     # Prefix + quit
+tuios send-keys "i Enter"      # Terminal mode + Enter
+```
+
+### Special Tokens
+
+**`$PREFIX` or `PREFIX`** - Expands to configured leader key (default `ctrl+b`):
+
+```bash
+tuios send-keys "$PREFIX n"    # Prefix + new window
+tuios send-keys "PREFIX q"     # Prefix + quit
+```
+
+### Supported Keys
+
+**Modifiers:**
+- `ctrl`, `alt`, `shift`, `super`, `meta`
+
+**Special keys:**
+- `Enter`, `Return`, `Space`, `Tab`
+- `Escape`, `Esc`, `Backspace`, `Delete`  
+- `Up`, `Down`, `Left`, `Right`
+- `Home`, `End`, `PageUp`, `PageDown`, `Insert`
+- `F1` through `F12`
+
+**Case insensitive:**
+```bash
+tuios send-keys ctrl+B  # Same as ctrl+b
+tuios send-keys ENTER   # Same as Enter
+```
+
+### Flags
+
+#### `--literal` - Send to Terminal PTY
+
+Send keys directly to the focused terminal (bypass TUIOS):
+
+```bash
+tuios send-keys --literal "ls -la"
+tuios send-keys --literal Enter
+```
+
+<Warning>
+With `--literal`, spaces split keys into separate characters unless you use `--raw`.
+</Warning>
+
+#### `--raw` - Treat Each Character as a Key
+
+Prevent splitting on spaces/commas:
+
+```bash
+tuios send-keys --raw "hello world"         # Each char sent separately
+tuios send-keys --literal --raw "echo hi"   # Literal text with spaces
+```
+
+#### `--session <name>` - Target Specific Session
+
+Default: most recently active session.
+
+```bash
+tuios send-keys --session dev Escape
+tuios send-keys -s prod "ctrl+b n"
+```
+
+### Examples
+
+**Enter terminal mode and run command:**
+```bash
+tuios send-keys i
+tuios send-keys --literal --raw "git status"
+tuios send-keys --literal Enter
+```
+
+**Create new window:**
+```bash
+tuios send-keys "ctrl+b n"
+```
+
+**Switch workspace and create window:**
+```bash
+tuios send-keys alt+2
+tuios send-keys "$PREFIX n"
+```
+
+**Send Ctrl+C to interrupt:**
+```bash
+tuios send-keys ctrl+c
+```
+
+**Quit TUIOS:**
+```bash
+tuios send-keys "ctrl+b q"
+```
+
+---
+
+## Run Command
+
+Execute tape commands in a running session.
+
+### Basic Usage
+
+```bash
+tuios run-command <command> [args...]
+```
+
+Commands are from the [tape scripting language](/advanced/tape-scripting).
+
+### List Available Commands
+
+```bash
+tuios run-command --list
+```
+
+<CodeGroup>
+```bash Output (excerpt)
+Available commands for 'tuios run-command':
+
+  NewWindow [name]                    Create a new terminal window
+  CloseWindow [name]                  Close window(s)
+  NextWindow                          Focus the next window
+  FocusWindow <name>                  Focus a window by name
+  ToggleTiling                        Toggle tiling mode
+  SwitchWorkspace 1-9                 Switch to workspace N
+  SetTheme themename                  Change the color theme
+  ...
+```
+</CodeGroup>
+
+### Window Management
+
+**Create windows:**
+```bash
+tuios run-command NewWindow "Server"
+tuios run-command NewWindow          # Auto-named
+```
+
+**Focus windows:**
+```bash
+tuios run-command NextWindow
+tuios run-command PrevWindow
+tuios run-command FocusWindow "Server"
+```
+
+**Close windows:**
+```bash
+tuios run-command CloseWindow           # Close focused
+tuios run-command CloseWindow "Build"   # Close all named "Build"
+```
+
+**Rename windows:**
+```bash
+tuios run-command RenameWindow "New Name"              # Rename focused
+tuios run-command RenameWindow "Old Name" "New Name"   # Rename by name
+```
+
+**Minimize/restore:**
+```bash
+tuios run-command MinimizeWindow
+tuios run-command MinimizeWindow "Server"
+tuios run-command RestoreWindow
+```
+
+### Mode Switching
+
+```bash
+tuios run-command TerminalMode           # Enter terminal mode
+tuios run-command WindowManagementMode   # Enter window mode
+```
+
+### Tiling
+
+**Toggle tiling:**
+```bash
+tuios run-command ToggleTiling
+tuios run-command EnableTiling
+tuios run-command DisableTiling
+```
+
+**Snap windows:**
+```bash
+tuios run-command SnapLeft
+tuios run-command SnapRight  
+tuios run-command SnapFullscreen
+```
+
+**BSP tiling:**
+```bash
+tuios run-command Split horizontal
+tuios run-command Split vertical
+tuios run-command RotateSplit
+tuios run-command EqualizeSplits
+```
+
+### Workspaces
+
+**Switch workspace:**
+```bash
+tuios run-command SwitchWorkspace 2
+```
+
+**Move window to workspace:**
+```bash
+tuios run-command MoveToWorkspace 3
+```
+
+### Configuration
+
+**Change settings:**
+```bash
+tuios run-command SetDockbarPosition top
+tuios run-command SetBorderStyle rounded
+tuios run-command SetTheme dracula
+```
+
+**Animations:**
+```bash
+tuios run-command EnableAnimations
+tuios run-command DisableAnimations
+tuios run-command ToggleAnimations
+```
+
+**Show notifications:**
+```bash
+tuios run-command ShowNotification "Build complete!" success
+tuios run-command ShowNotification "Error occurred" error
+```
+
+### JSON Output for Scripting
+
+Get machine-readable output:
+
+```bash
+tuios run-command --json NewWindow "Server"
+```
+
+<CodeGroup>
+```json Example Output
+{
+  "success": true,
+  "message": "command executed",
+  "window_id": "abc123-def456"
+}
+```
+</CodeGroup>
+
+**Use with jq:**
+```bash
+# Get window ID from new window
+WINDOW_ID=$(tuios run-command --json NewWindow | jq -r '.window_id')
+echo "Created window: $WINDOW_ID"
+```
+
+### Session Targeting
+
+```bash
+tuios run-command --session dev NewWindow
+tuios run-command -s prod ToggleTiling
+```
+
+---
+
+## Set Config
+
+Change configuration at runtime.
+
+### Basic Usage
+
+```bash
+tuios set-config <path> <value>
+```
+
+### Supported Paths
+
+**Dockbar position:**
+```bash
+tuios set-config dockbar_position top
+tuios set-config dockbar_position bottom
+```
+
+**Border style:**
+```bash
+tuios set-config border_style rounded
+tuios set-config border_style thick
+tuios set-config border_style hidden
+```
+
+**Animations:**
+```bash
+tuios set-config animations true
+tuios set-config animations false
+tuios set-config animations toggle
+```
+
+**Window buttons:**
+```bash
+tuios set-config hide_window_buttons true
+tuios set-config hide_window_buttons false
+```
+
+### Session Targeting
+
+```bash
+tuios set-config --session dev animations false
+```
+
+<Note>
+Config changes apply to the running session only. They don't persist to the config file. Edit `~/.config/tuios/config.toml` for permanent changes.
+</Note>
+
+---
+
+## Query State
+
+Inspect session and window state from the CLI.
+
+### List Windows
+
+```bash
+tuios list-windows
+```
+
+<CodeGroup>
+```bash Table Output
+╭─────────────┬──────────┬───────────┬───────────╮
+│ ID          │ Name     │ Workspace │ Focused   │
+├─────────────┼──────────┼───────────┼───────────┤
+│ abc123      │ Server   │ 1         │ yes       │
+│ def456      │ Editor   │ 1         │ no        │
+│ ghi789      │ Build    │ 2         │ no        │
+╰─────────────┴──────────┴───────────┴───────────╯
+```
+</CodeGroup>
+
+**JSON output:**
+```bash
+tuios list-windows --json
+```
+
+<CodeGroup>
+```json Example
+{
+  "success": true,
+  "windows": [
+    {
+      "window_id": "abc123-def456",
+      "index": 0,
+      "title": "zsh",
+      "display_name": "Server",
+      "workspace": 1,
+      "focused": true,
+      "minimized": false,
+      "x": 0,
+      "y": 0,
+      "width": 120,
+      "height": 40
+    }
+  ],
+  "total": 3,
+  "focused_window_id": "abc123-def456",
+  "current_workspace": 1
+}
+```
+</CodeGroup>
+
+**Use with jq:**
+```bash
+# Get focused window ID
+tuios list-windows --json | jq -r '.focused_window_id'
+
+# List window names
+tuios list-windows --json | jq -r '.windows[].display_name'
+
+# Count windows per workspace
+tuios list-windows --json | jq '.workspace_windows'
+```
+
+### Get Window Info
+
+**Focused window:**
+```bash
+tuios get-window
+tuios get-window --json
+```
+
+**By name:**
+```bash
+tuios get-window "Server"
+tuios get-window "Server" --json
+```
+
+**By ID:**
+```bash
+tuios get-window abc123-def456
+```
+
+### Session Info
+
+```bash
+tuios session-info
+```
+
+<CodeGroup>
+```bash Table Output
+╭────────────────────┬───────────────╮
+│ Session Name       │ dev           │
+│ Current Workspace  │ 2             │
+│ Window Count       │ 5             │
+│ Tiling Mode        │ enabled       │
+│ Mode               │ terminal      │
+╰────────────────────┴───────────────╯
+```
+</CodeGroup>
+
+**JSON output:**
+```bash
+tuios session-info --json
+```
+
+<CodeGroup>
+```json Example
+{
+  "success": true,
+  "session_name": "dev",
+  "current_workspace": 2,
+  "num_workspaces": 9,
+  "window_count": 5,
+  "tiling_mode": "tiling",
+  "mode": "terminal",
+  "width": 200,
+  "height": 50
+}
+```
+</CodeGroup>
+
+**Use with jq:**
+```bash
+# Check if tiling is enabled
+if [ "$(tuios session-info --json | jq -r '.tiling_mode')" = "tiling" ]; then
+  echo "Tiling is enabled"
+fi
+
+# Get current workspace
+WS=$(tuios session-info --json | jq -r '.current_workspace')
+echo "Current workspace: $WS"
+```
+
+---
+
+## Execute Tape Scripts
+
+Run entire tape scripts remotely.
+
+### Basic Usage
+
+```bash
+tuios tape exec <file.tape>
+```
+
+Executes the tape script in the running session without attaching.
+
+### Example Script
+
+**setup.tape:**
+```tape
+NewWindow "Server"
+SwitchWorkspace 1
+
+NewWindow "Editor"  
+SwitchWorkspace 1
+
+NewWindow "Build"
+SwitchWorkspace 2
+
+FocusWindow "Server"
+ShowNotification "Workspace setup complete" success
+```
+
+**Execute:**
+```bash
+tuios tape exec setup.tape
+```
+
+### Session Targeting
+
+```bash
+tuios tape exec --session dev setup.tape
+```
+
+<Tip>
+For complex automation, use tape scripts instead of chaining `run-command` calls. Scripts are atomic and easier to maintain.
+</Tip>
+
+---
+
+## Automation Examples
+
+### Development Environment Setup
+
+```bash
+#!/bin/bash
+# setup-dev.sh - Create development workspace
+
+SESSION="dev"
+
+# Create session if not exists
+if ! tuios ls | grep -q "$SESSION"; then
+  tuios new "$SESSION" &
+  sleep 2
+fi
+
+# Set up windows
+tuios run-command -s "$SESSION" NewWindow "Server"
+tuios send-keys -s "$SESSION" --literal --raw "npm run dev"
+tuios send-keys -s "$SESSION" --literal Enter
+
+tuios run-command -s "$SESSION" NewWindow "Editor"
+tuios send-keys -s "$SESSION" --literal --raw "nvim src/"
+tuios send-keys -s "$SESSION" --literal Enter
+
+tuios run-command -s "$SESSION" NewWindow "Git"
+tuios send-keys -s "$SESSION" --literal --raw "git status"
+tuios send-keys -s "$SESSION" --literal Enter
+
+tuios run-command -s "$SESSION" SwitchWorkspace 1
+tuios run-command -s "$SESSION" FocusWindow "Server"
+
+echo "Development environment ready. Attach with: tuios attach $SESSION"
+```
+
+### Check Build Status
+
+```bash
+#!/bin/bash
+# check-build.sh - Query window to see if build finished
+
+WINDOW_NAME="Build"
+
+# Get window info
+INFO=$(tuios get-window "$WINDOW_NAME" --json)
+
+if echo "$INFO" | jq -e '.success' > /dev/null; then
+  echo "Build window found"
+  # Could parse terminal output here if needed
+else
+  echo "Build window not found"
+  exit 1
+fi
+```
+
+### Dynamic Workspace Configuration
+
+```bash
+#!/bin/bash
+# toggle-tiling.sh - Toggle tiling based on window count
+
+INFO=$(tuios session-info --json)
+WINDOW_COUNT=$(echo "$INFO" | jq -r '.window_count')
+
+if [ "$WINDOW_COUNT" -gt 3 ]; then
+  echo "Many windows, enabling tiling"
+  tuios run-command EnableTiling
+else
+  echo "Few windows, disabling tiling"
+  tuios run-command DisableTiling
+fi
+```
+
+### Send Notifications on Events
+
+```bash
+#!/bin/bash
+# notify-build.sh - Show notification when build completes
+
+make build && \
+  tuios run-command ShowNotification "Build succeeded!" success || \
+  tuios run-command ShowNotification "Build failed!" error
+```
+
+---
+
+## Shell Completion
+
+TUIOS provides tab completion for all remote control commands.
+
+**Generate completions:**
+
+```bash
+# Bash
+tuios completion bash > /etc/bash_completion.d/tuios
+
+# Zsh  
+tuios completion zsh > "${fpath[1]}/_tuios"
+
+# Fish
+tuios completion fish > ~/.config/fish/completions/tuios.fish
+```
+
+**Features:**
+- Session name completion
+- Command name completion
+- Argument completion (e.g., workspace numbers, border styles)
+- Key name completion for `send-keys`
+
+<Tip>
+Use `Tab` after `tuios send-keys` to see all available key names.
+</Tip>
+
+---
+
+## Troubleshooting
+
+### Command Not Executing
+
+**Check daemon is running:**
+```bash
+tuios ls
+```
+
+**Check session exists:**
+```bash
+tuios ls
+# Verify target session is listed
+```
+
+**Check TUI client is attached:**
+
+Remote commands require a TUI client to be attached to the session.
+
+```bash
+tuios ls
+# "Attached" column should show "yes"
+```
+
+If no client is attached, attach one:
+```bash
+tuios attach mysession
+```
+
+### Timeouts
+
+Commands timeout after 5 seconds if no response.
+
+**Possible causes:**
+- TUI client frozen/crashed
+- Daemon overloaded
+- Network issue (if using SSH)
+
+**Solution:**
+```bash
+tuios kill-session mysession
+tuios new mysession
+```
+
+### Wrong Session Targeted
+
+By default, commands target the **most recently active** session.
+
+**Always specify session:**
+```bash
+tuios run-command --session mysession NewWindow
+```
+
+---
+
+## See Also
+
+<CardGroup cols={2}>
+  <Card title="Daemon Mode" icon="server" href="/guides/daemon-mode">
+    Session lifecycle and daemon management
+  </Card>
+  <Card title="Tape Scripting" icon="file-code" href="/guides/tape-scripting">
+    Automation language reference
+  </Card>
+  <Card title="Library Usage" icon="book" href="/guides/library-usage">
+    Embedding TUIOS in Go apps
+  </Card>
+  <Card title="Keybindings" icon="keyboard" href="/reference/keybindings">
+    All available key commands
+  </Card>
+</CardGroup>

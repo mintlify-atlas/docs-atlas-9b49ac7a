@@ -1,80 +1,544 @@
 ---
-title: "Quickstart"
-description: "Start building awesome documentation in minutes"
+title: "Quick Start"
+description: "Get started with TUIOS in 5 minutes. Learn essential keybindings, create windows, navigate workspaces, and master the basics of terminal window management"
 ---
 
-## Get started in three steps
+## Launch TUIOS
 
-Get your documentation site running locally and make your first customization.
+Start TUIOS from your terminal:
 
-### Step 1: Set up your local environment
+```bash
+tuios
+```
 
-<AccordionGroup>
-  <Accordion icon="copy" title="Clone your docs locally">
-    During the onboarding process, you created a GitHub repository with your docs content if you didn't already have one. You can find a link to this repository in your [dashboard](https://dashboard.mintlify.com).
-    
-    To clone the repository locally so that you can make and preview changes to your docs, follow the [Cloning a repository](https://docs.github.com/en/repositories/creating-and-managing-repositories/cloning-a-repository) guide in the GitHub docs.
-  </Accordion>
-  <Accordion icon="rectangle-terminal" title="Start the preview server">
-    1. Install the Mintlify CLI: `npm i -g mint`
-    2. Navigate to your docs directory and run: `mint dev`
-    3. Open `http://localhost:3000` to see your docs live!
-    
-    <Tip>Your preview updates automatically as you edit files.</Tip>
-  </Accordion>
-</AccordionGroup>
-
-### Step 2: Deploy your changes
-
-<AccordionGroup>
-  <Accordion icon="github" title="Install our GitHub app">
-    Install the Mintlify GitHub app from your [dashboard](https://dashboard.mintlify.com/settings/organization/github-app).
-    
-    Our GitHub app automatically deploys your changes to your docs site, so you don't need to manage deployments yourself.
-</Accordion>
-<Accordion icon="palette" title="Update your site name and colors">
-    For a first change, let's update the name and colors of your docs site.
-
-    1. Open `docs.json` in your editor.
-    2. Change the `"name"` field to your project name.
-    3. Update the `"colors"` to match your brand.
-    4. Save and see your changes instantly at `http://localhost:3000`.
-
-    <Tip>Try changing the primary color to see an immediate difference!</Tip>
-  </Accordion>
-</AccordionGroup>
-
-### Step 3: Go live
-
-<Accordion icon="rocket" title="Publish your docs">
-  1. Commit and push your changes.
-  2. Your docs will update and be live in moments!
-</Accordion>
-
-## Next steps
-
-Now that you have your docs running, explore these key features:
-
-<CardGroup cols={2}>
-
-<Card title="Write Content" icon="pen-to-square" href="/essentials/markdown">
-  Learn MDX syntax and start writing your documentation.
-</Card>
-
-<Card title="Customize style" icon="palette" href="/essentials/settings">
-  Make your docs match your brand perfectly.
-</Card>
-
-<Card title="Add code examples" icon="square-code" href="/essentials/code">
-  Include syntax-highlighted code blocks.
-</Card>
-
-<Card title="API documentation" icon="code" href="/api-reference/introduction">
-  Auto-generate API docs from OpenAPI specs.
-</Card>
-
-</CardGroup>
+You'll see the TUIOS interface with:
+- A single terminal window (Window 1) running your default shell
+- A dockbar at the bottom showing all windows
+- A clock in the top-right corner
+- Status indicators for workspace and mode
 
 <Note>
-  **Need help?** See our [full documentation](https://mintlify.com/docs) or join our [community](https://mintlify.com/community).
+TUIOS starts in **Window Management Mode** by default. This mode lets you create, navigate, and organize windows. Press `i` or `Enter` to switch to **Terminal Mode** where your input goes directly to the focused terminal.
 </Note>
+
+## Understanding Modes
+
+TUIOS has two primary modes:
+
+<CardGroup cols={2}>
+  <Card title="Window Management Mode" icon="layer-group">
+    Navigate and manage windows, workspaces, and layouts. Most keybindings work without conflicts.
+    
+    **Indicators:** Border around focused window, mode shown in status bar
+  </Card>
+  
+  <Card title="Terminal Mode" icon="terminal">
+    Input goes directly to the focused terminal. Use Ctrl+B prefix for TUIOS commands.
+    
+    **Indicators:** Cursor visible in terminal, prompt active
+  </Card>
+</CardGroup>
+
+**Switching modes:**
+- Press `i` or `Enter` to enter Terminal Mode (from Window Management Mode)
+- Press `Ctrl+B` then `d`, or `Esc` to return to Window Management Mode
+
+## Essential Keybindings
+
+<Steps>
+  <Step title="Create Your First Window">
+    
+Let's create a second window to see TUIOS in action.
+
+**In Window Management Mode:**
+```
+Press: n
+```
+
+**From any mode (using prefix):**  
+```
+Press: Ctrl+B, then c
+```
+
+You should now see two windows. The dockbar at the bottom shows both "Window 1" and "Window 2".
+
+<Tip>
+The `Ctrl+B` prefix system (like tmux) works from any mode. Press `Ctrl+B`, release, then press the command key.
+</Tip>
+
+  </Step>
+
+  <Step title="Switch Between Windows">
+    
+Navigate between your windows:
+
+**Keyboard navigation:**
+```
+Tab          - Focus next window
+Shift+Tab    - Focus previous window  
+1, 2, 3...   - Jump to window by number (in Window Management Mode)
+```
+
+**Mouse navigation:**
+```
+Click any window to focus it
+```
+
+The focused window will have a highlighted border.
+
+  </Step>
+
+  <Step title="Enter Terminal Mode">
+    
+To actually use a terminal, enter Terminal Mode:
+
+```
+Press: i (or Enter)
+```
+
+Now type some commands:
+
+```bash
+# You're now in Terminal Mode - your input goes to the shell
+ls -la
+echo "Hello from TUIOS!"
+top
+```
+
+**Notice:** You can still use `Ctrl+B` prefix commands:
+
+```
+Ctrl+B, c    - Create new window (without leaving Terminal Mode)
+Ctrl+B, ?    - Show help overlay
+Ctrl+B, d    - Return to Window Management Mode
+```
+
+  </Step>
+
+  <Step title="Try Window Layouts">
+    
+Return to Window Management Mode (`Ctrl+B` then `d`) and try snapping windows:
+
+```
+h    - Snap focused window to left half
+l    - Snap focused window to right half  
+f    - Fullscreen focused window
+u    - Unsnap/restore window
+```
+
+Or enable automatic tiling:
+
+```
+t    - Toggle BSP tiling mode
+```
+
+With tiling enabled, create a few more windows (press `n` repeatedly). Watch how TUIOS automatically arranges them in a balanced layout.
+
+**Tiling mode keybindings:**
+```
+Shift+H      - Swap with window to the left
+Shift+L      - Swap with window to the right
+<            - Decrease master window width  
+>            - Increase master window width
+```
+
+  </Step>
+
+  <Step title="Use Workspaces">
+    
+Organize windows across 9 independent workspaces:
+
+```
+Alt+1        - Switch to workspace 1
+Alt+2        - Switch to workspace 2
+...          
+Alt+9        - Switch to workspace 9
+```
+
+**On macOS:** Use `Option+1` through `Option+9`
+
+**Move windows between workspaces:**
+```
+Alt+Shift+2  - Move focused window to workspace 2 (and follow)
+```
+
+Try this workflow:
+1. Press `Alt+1` to ensure you're on workspace 1
+2. Press `Alt+2` to switch to workspace 2 (empty)
+3. Press `n` to create a window on workspace 2
+4. Press `Alt+1` to go back to workspace 1  
+5. Notice workspace 2's windows are hidden until you switch back
+
+  </Step>
+
+  <Step title="Explore Copy Mode">
+    
+Copy mode lets you navigate scrollback and copy text with vim keybindings:
+
+```
+Ctrl+B, [    - Enter copy mode
+```
+
+**In copy mode:**
+```
+j/k          - Move cursor down/up (vim-style)
+h/l          - Move cursor left/right
+w/b          - Jump forward/backward by word
+/            - Search forward  
+?            - Search backward
+v            - Start visual selection
+y            - Yank (copy) selected text
+Esc or q     - Exit copy mode
+```
+
+**Example:** Scroll back through your terminal history:
+
+1. Run some commands to generate output: `ls -la && pwd && date`
+2. Press `Ctrl+B` then `[` to enter copy mode
+3. Press `k` several times to scroll up
+4. Press `/` and type a search term, then Enter
+5. Press `v` to start selecting, move cursor, press `y` to copy
+6. Press `Esc` to exit copy mode
+
+<Note>
+TUIOS keeps 10,000 lines of scrollback per terminal by default. You can configure this with the `--scrollback-lines` flag or in the config file.
+</Note>
+
+  </Step>
+</Steps>
+
+## Common Workflows
+
+### Development Environment Setup
+
+Create a typical development layout:
+
+```
+1. Launch TUIOS: tuios
+2. Press 'n' three times to create 4 windows total  
+3. Press 't' to enable tiling
+4. Press 'i' to enter Terminal Mode in window 1
+5. Type: vim src/main.go
+6. Press Ctrl+B, then Tab to go to window 2
+7. Type: go run ./cmd/app
+8. Press Ctrl+B, then Tab to go to window 3  
+9. Type: go test ./...
+10. Press Ctrl+B, then Tab to go to window 4
+11. Type: git status
+```
+
+Now you have: editor, app runner, test watcher, and git - all visible at once.
+
+### Monitor Multiple Servers
+
+```
+1. Launch TUIOS
+2. Switch to workspace 1: Alt+1  
+3. Create windows for production: n, n, n (3 servers)
+4. In each window, SSH to a production server
+5. Switch to workspace 2: Alt+2
+6. Create windows for staging: n, n, n  
+7. In each window, SSH to a staging server
+```
+
+Now you can monitor production (workspace 1) and staging (workspace 2) separately.
+
+### Session Persistence (Daemon Mode)
+
+Keep your TUIOS sessions running even after detaching:
+
+```bash
+# Create a new persistent session
+tuios new my-project
+
+# Do some work...
+# Press Ctrl+B then Ctrl+D to detach
+
+# Later, reattach to your session  
+tuios attach my-project
+
+# List all sessions
+tuios ls
+
+# Kill a session
+tuios kill-session my-project
+```
+
+All your windows, workspaces, and terminal content are preserved!
+
+## Universal Keybindings (Work from Any Mode)
+
+These use the `Ctrl+B` prefix and work whether you're in Window Management or Terminal Mode:
+
+```
+Ctrl+B, c    - Create new window
+Ctrl+B, ?    - Toggle help overlay  
+Ctrl+B, [    - Enter copy mode (vim-style scrollback)
+Ctrl+B, d    - Return to Window Management Mode (or detach in daemon mode)
+Ctrl+B, q    - Quit TUIOS
+Ctrl+B, 1-9  - Switch to workspace 1-9 (alternative to Alt+1-9)
+```
+
+**Window management submenu (Ctrl+B, t):**
+```
+Ctrl+B, t, n - Create new window  
+Ctrl+B, t, x - Close window
+Ctrl+B, t, r - Rename window
+Ctrl+B, t, t - Toggle tiling
+```
+
+**Tape recording submenu (Ctrl+B, T):**
+```  
+Ctrl+B, T, r - Start recording tape
+Ctrl+B, T, s - Stop recording tape
+```
+
+## Window Management Mode Quick Reference
+
+When you're in Window Management Mode (press `Esc` or `Ctrl+B d` from Terminal Mode):
+
+<CardGroup cols={2}>
+  <Card title="Window Operations" icon="window-maximize">
+    ```
+    n - Create new window
+    w/x - Close window  
+    r - Rename window
+    m - Minimize window
+    Shift+M - Restore all minimized
+    ```
+  </Card>
+  
+  <Card title="Navigation" icon="arrows-alt">
+    ```
+    Tab - Next window
+    Shift+Tab - Previous window
+    1-9 - Jump to window by number
+    Alt+1-9 - Switch workspace  
+    ```
+  </Card>
+  
+  <Card title="Snapping" icon="border-all">
+    ```
+    h - Snap left half
+    l - Snap right half
+    f - Fullscreen  
+    u - Unsnap
+    1-4 - Snap to corners
+    ```
+  </Card>
+  
+  <Card title="Tiling" icon="table-cells">
+    ```
+    t - Toggle tiling
+    Shift+H/L/J/K - Swap windows
+    </> - Resize horizontal
+    {/} - Resize vertical  
+    ```
+  </Card>
+</CardGroup>
+
+## Getting Help
+
+TUIOS has built-in help:
+
+```
+?            - Toggle help overlay (in Window Management Mode)
+Ctrl+B, ?    - Toggle help overlay (from any mode)
+Ctrl+L       - View debug logs (system information)
+```
+
+The help overlay shows all keybindings organized by category.
+
+## Configuration
+
+Customize TUIOS with a TOML config file:
+
+```bash  
+# Edit configuration in your $EDITOR
+tuios config edit
+
+# Show config file location
+tuios config path
+
+# Reset to defaults  
+tuios config reset
+
+# List all keybindings
+tuios keybinds list
+
+# List only custom keybindings
+tuios keybinds list-custom
+```
+
+The config file lets you:
+- Customize all keybindings (100+ configurable)
+- Change the leader key (default: Ctrl+B)
+- Set default theme, border style, dockbar position
+- Configure scrollback buffer size
+- Customize window title position
+
+## Run with Options
+
+TUIOS supports many command-line flags:
+
+```bash  
+# Run with a specific theme
+tuios --theme dracula
+
+# List all available themes
+tuios --list-themes
+
+# Run in ASCII-only mode (no Nerd Font icons)  
+tuios --ascii-only
+
+# Enable debug logging
+tuios --debug
+
+# Hide the dockbar
+tuios --dockbar-position hidden  
+
+# Disable animations
+tuios --no-animations
+
+# Show keypresses (for presentations)
+tuios --show-keys
+```
+
+## Advanced Features
+
+### SSH Server Mode
+
+Run TUIOS as an SSH server for remote access:
+
+```bash
+# Start SSH server on default port (2222)  
+tuios ssh
+
+# Custom port and host
+tuios ssh --host 0.0.0.0 --port 8022
+
+# Connect from another machine
+ssh -p 2222 user@hostname
+```
+
+### Web Terminal Mode
+
+Access TUIOS from a web browser (requires `tuios-web` binary):
+
+```bash  
+# Start web terminal server
+tuios-web
+
+# Custom port with theme
+tuios-web --port 8080 --theme dracula
+
+# Open in browser
+open http://localhost:7681
+```
+
+### Tape Scripting
+
+Automate workflows with tape scripts:
+
+```bash
+# Record a session (press Ctrl+B T r while in TUIOS)
+# Perform actions...
+# Stop recording (press Ctrl+B T s)  
+
+# List recordings
+tuios tape list
+
+# Play back interactively (with visible TUI)
+tuios tape play my-recording.tape
+
+# Run headless (background automation)  
+tuios tape run script.tape
+
+# Validate tape syntax
+tuios tape validate script.tape
+```
+
+Example tape file:
+```tape
+# automation.tape
+NewWindow  
+Sleep 500ms
+Type "echo 'Setting up environment...'"
+Enter
+Sleep 1s
+Ctrl+B
+Type "n"
+Sleep 500ms  
+Type "npm run dev"
+Enter
+```
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="How do I exit TUIOS?">
+    From Window Management Mode, press `q`. From Terminal Mode, press `Ctrl+B` then `q`.
+  </Accordion>
+  
+  <Accordion title="Keybindings don't work in Terminal Mode">
+    In Terminal Mode, your input goes to the shell. Use the `Ctrl+B` prefix for TUIOS commands, or press `Esc` to return to Window Management Mode.
+  </Accordion>
+  
+  <Accordion title="Windows won't tile automatically">  
+    Press `t` in Window Management Mode to toggle tiling. The status bar should show "TILING" when enabled.
+  </Accordion>
+  
+  <Accordion title="Can't see scrollback history">
+    Press `Ctrl+B` then `[` to enter copy mode. Use `j/k` to scroll up/down. TUIOS keeps 10,000 lines by default.
+  </Accordion>
+  
+  <Accordion title="Mouse isn't working">
+    Mouse support should work by default. Try clicking window borders to resize or drag title bars to move windows. Ensure your terminal supports mouse events.
+  </Accordion>
+</AccordionGroup>
+
+## Next Steps
+
+Now that you know the basics, explore these advanced topics:
+
+<CardGroup cols={2}>
+  <Card title="Keybindings Reference" icon="keyboard">
+    Complete list of all 100+ keyboard shortcuts organized by category
+  </Card>
+  
+  <Card title="BSP Tiling Guide" icon="table-cells">
+    Master Binary Space Partitioning with preselection, split control, and edge-based resizing  
+  </Card>
+  
+  <Card title="Configuration Guide" icon="sliders">
+    Customize keybindings, themes, and UI settings with TOML config
+  </Card>
+  
+  <Card title="Tape Scripting" icon="file-code">
+    Automate workflows with the DSL, record sessions, and run scripts in CI/CD
+  </Card>
+</CardGroup>
+
+## Tips for Productivity
+
+<Tip>
+**Workspace Strategy:** Organize by project or context. For example:
+- Workspace 1: Frontend development  
+- Workspace 2: Backend development
+- Workspace 3: Database and monitoring
+- Workspace 4: Documentation and notes
+</Tip>
+
+<Tip>
+**Window Naming:** Rename windows (press `r` in Window Management Mode) to identify them easily. The dockbar shows window names.
+</Tip>
+
+<Tip>  
+**Learn Incrementally:** Start with basic window creation and navigation. Add tiling mode when comfortable. Learn copy mode and tape scripting as needed. Don't try to memorize all keybindings at once.
+</Tip>
+
+<Tip>
+**Customize Early:** Run `tuios config edit` and customize the leader key or commonly-used keybindings to match your muscle memory from vim/tmux/i3.
+</Tip>
+
+You're now ready to use TUIOS productively. Happy terminal multiplexing!

@@ -1,0 +1,444 @@
+---
+title: 'CLI Flags Reference'
+description: 'Complete reference for all TUIOS command-line flags and options'
+---
+
+## Global Flags
+
+These flags are available for all TUIOS commands and affect the main application behavior.
+
+| Flag | Type | Default | Description |
+|------|------|---------|-------------|
+| `--debug` | boolean | `false` | Enable debug logging to stderr |
+| `--cpuprofile <file>` | string | - | Write CPU profile to specified file for performance analysis |
+| `--ascii-only` | boolean | `false` | Use ASCII characters instead of Nerd Font icons |
+| `--theme <name>` | string | - | Color theme to use (e.g., dracula, nord, tokyonight). Leave empty to use standard terminal colors |
+| `--list-themes` | boolean | `false` | List all available themes and exit |
+| `--preview-theme <name>` | string | - | Preview a theme's 16 ANSI colors and exit |
+| `--border-style <style>` | string | `rounded` | Window border style (see Border Styles below) |
+| `--dockbar-position <pos>` | string | `bottom` | Dockbar position: `bottom`, `top`, `hidden` |
+| `--hide-window-buttons` | boolean | `false` | Hide window control buttons (minimize, maximize, close) |
+| `--scrollback-lines <n>` | int | `10000` | Number of lines to keep in scrollback buffer (min: 100, max: 1000000) |
+| `--show-keys` | boolean | `false` | Enable showkeys overlay to display pressed keys |
+| `--no-animations` | boolean | `false` | Disable UI animations for instant transitions |
+| `--window-title-position <pos>` | string | `bottom` | Window title position: `bottom`, `top`, `hidden` |
+| `--hide-clock` | boolean | `false` | Hide the clock overlay |
+
+### Border Styles
+
+Available border styles for `--border-style`:
+- `rounded` - Rounded corners (default)
+- `normal` - Sharp corners
+- `thick` - Thick lines
+- `double` - Double lines
+- `hidden` - No borders
+- `block` - Block characters
+- `ascii` - ASCII-only borders
+- `outer-half-block` - Half-block outer border
+- `inner-half-block` - Half-block inner border
+
+### Theme Commands
+
+```bash
+# List all available themes
+tuios --list-themes
+
+# Preview a specific theme's colors
+tuios --preview-theme dracula
+
+# Interactive theme selection with fzf and preview
+tuios --theme $(tuios --list-themes | fzf --preview 'tuios --preview-theme {}')
+
+# Run with specific theme
+tuios --theme nord
+```
+
+---
+
+## SSH Server Flags
+
+Flags for `tuios ssh` command.
+
+| Flag | Type | Default | Description |
+|------|------|---------|-------------|
+| `--port <port>` | string | `2222` | SSH server port |
+| `--host <host>` | string | `localhost` | SSH server host |
+| `--key-path <path>` | string | - | Path to SSH host key (auto-generated if not specified) |
+| `--default-session <name>` | string | - | Default session name for all connections |
+| `--ephemeral` | boolean | `false` | Run in ephemeral mode (standalone, no daemon) |
+
+### SSH Session Selection Priority
+
+1. `--default-session` flag (if specified)
+2. SSH username (if not generic like "tuios", "root", "anonymous")
+3. SSH command argument (e.g., `ssh host attach mysession`)
+4. First available session or create new
+
+### Examples
+
+```bash
+# Start SSH server on default port
+tuios ssh
+
+# Start on custom port
+tuios ssh --port 2222
+
+# Specify custom host key
+tuios ssh --key-path /path/to/host_key
+
+# Use a default session for all connections
+tuios ssh --default-session mysession
+
+# Run in ephemeral mode (standalone, no daemon)
+tuios ssh --ephemeral
+```
+
+---
+
+## Configuration Flags
+
+No additional flags for configuration commands.
+
+### `tuios config path`
+Print configuration file path.
+
+### `tuios config edit`
+Open configuration in `$EDITOR`.
+
+### `tuios config reset`
+Reset configuration to defaults (with confirmation).
+
+---
+
+## Keybindings Flags
+
+No additional flags for keybindings commands.
+
+### `tuios keybinds list`
+Display all configured keybindings in a formatted table.
+
+### `tuios keybinds list-custom`
+Display only keybindings that differ from defaults.
+
+---
+
+## Tape Flags
+
+Flags for `tuios tape` commands.
+
+### `tuios tape play <file.tape>`
+
+Run a tape file in interactive mode with visible TUI.
+
+| Flag | Type | Default | Description |
+|------|------|---------|-------------|
+| `-v, --visible` | boolean | `true` | Show TUI during playback |
+
+**Playback Controls:**
+- `Ctrl+P` - Pause/resume playback
+
+### `tuios tape validate <file.tape>`
+Validate tape file syntax without running it.
+
+### `tuios tape list`
+List all saved tape recordings.
+
+### `tuios tape dir`
+Show the tape recordings directory path.
+
+### `tuios tape delete <name>`
+Delete a tape recording.
+
+### `tuios tape show <name>`
+Display the contents of a tape file.
+
+### `tuios tape exec <file.tape>`
+
+Execute a tape file in a running session.
+
+| Flag | Type | Default | Description |
+|------|------|---------|-------------|
+| `-s, --session <name>` | string | - | Target session (default: most recently active) |
+
+---
+
+## Session Management Flags
+
+### `tuios attach [session-name]`
+
+Attach to an existing TUIOS session.
+
+| Flag | Type | Default | Description |
+|------|------|---------|-------------|
+| `-c, --create` | boolean | `false` | Create session if it doesn't exist |
+
+### `tuios new [session-name]`
+Create a new TUIOS session (no flags).
+
+### `tuios ls`
+List TUIOS sessions (no flags).
+
+### `tuios kill-session <session-name>`
+Kill a TUIOS session (no flags).
+
+---
+
+## Daemon Flags
+
+### `tuios daemon`
+
+Run the TUIOS daemon in the foreground.
+
+| Flag | Type | Default | Description |
+|------|------|---------|-------------|
+| `--log-level <level>` | string | - | Debug log level: `off`, `errors`, `basic`, `messages`, `verbose`, `trace` |
+
+**Log Levels:**
+- `off` - No debug output (default)
+- `errors` - Only error messages
+- `basic` - Connection events and errors
+- `messages` - All protocol messages except PTY I/O
+- `verbose` - All messages including PTY I/O
+- `trace` - Full payload hex dumps
+
+### `tuios start-server`
+Start the TUIOS daemon in the background (hidden, no flags).
+
+### `tuios kill-server`
+Stop the TUIOS daemon (no flags).
+
+---
+
+## Remote Control Flags
+
+### `tuios send-keys <keys>`
+
+Send keystrokes to a running TUIOS session.
+
+| Flag | Type | Default | Description |
+|------|------|---------|-------------|
+| `-s, --session <name>` | string | - | Target session (default: most recently active) |
+| `-l, --literal` | boolean | `false` | Send keys directly to terminal PTY (bypass TUIOS) |
+| `-r, --raw` | boolean | `false` | Treat each character as a separate key (no splitting) |
+
+**Key Format:**
+- Single keys: `i`, `n`, `Enter`, `Escape`, `Space`
+- Key combos: `ctrl+b`, `alt+1`, `shift+Enter` (case-insensitive)
+- Sequences: space or comma separated, e.g., `ctrl+b q` or `ctrl+b,q`
+
+**Special Tokens:**
+- `$PREFIX` or `PREFIX` - Expands to configured leader key (default: `ctrl+b`)
+
+**Modifiers:** `ctrl`, `alt`, `shift`, `super`, `meta`
+
+**Special Keys:** `Enter`, `Return`, `Space`, `Tab`, `Escape`, `Esc`, `Backspace`, `Delete`, `Up`, `Down`, `Left`, `Right`, `Home`, `End`, `PageUp`, `PageDown`, `F1`-`F12`
+
+**Examples:**
+```bash
+# Enter terminal mode (press 'i')
+tuios send-keys i
+
+# Press Enter
+tuios send-keys Enter
+
+# Trigger prefix key followed by 'q' (quit)
+tuios send-keys "ctrl+b q"
+tuios send-keys "$PREFIX q"
+
+# Multiple keys: prefix + new window
+tuios send-keys "ctrl+b,n"
+
+# Send Ctrl+C to TUIOS
+tuios send-keys ctrl+c
+
+# Send literal text directly to terminal PTY
+tuios send-keys --literal --raw "echo hello"
+
+# Send to a specific session
+tuios send-keys --session mysession Escape
+```
+
+### `tuios run-command <command> [args...]`
+
+Execute a tape command in a running session.
+
+| Flag | Type | Default | Description |
+|------|------|---------|-------------|
+| `-s, --session <name>` | string | - | Target session (default: most recently active) |
+| `--list` | boolean | `false` | List all available commands |
+| `--json` | boolean | `false` | Output result as JSON (for scripting) |
+
+**Examples:**
+```bash
+# Create a new window
+tuios run-command NewWindow
+
+# Create a window and get its ID (for scripting)
+tuios run-command --json NewWindow "My Window"
+
+# Switch to workspace 2
+tuios run-command SwitchWorkspace 2
+
+# Toggle tiling mode
+tuios run-command ToggleTiling
+
+# Change dockbar position
+tuios run-command SetDockbarPosition top
+
+# List all available commands
+tuios run-command --list
+```
+
+### `tuios set-config <path> <value>`
+
+Set a configuration option at runtime.
+
+| Flag | Type | Default | Description |
+|------|------|---------|-------------|
+| `-s, --session <name>` | string | - | Target session (default: most recently active) |
+
+**Supported Configuration Paths:**
+- `dockbar_position` - Dockbar position: `top`, `bottom`, `left`, `right`
+- `border_style` - Border style: `rounded`, `normal`, `thick`, `double`, `hidden`, `block`, `ascii`
+- `animations` - Enable animations: `true`, `false`, `toggle`
+- `hide_window_buttons` - Hide window buttons: `true`, `false`
+
+**Examples:**
+```bash
+# Change dockbar position
+tuios set-config dockbar_position top
+
+# Change border style
+tuios set-config border_style rounded
+
+# Toggle animations
+tuios set-config animations toggle
+
+# Hide window buttons
+tuios set-config hide_window_buttons true
+```
+
+---
+
+## Logs Flags
+
+### `tuios logs`
+
+View daemon logs.
+
+| Flag | Type | Default | Description |
+|------|------|---------|-------------|
+| `-n, --lines <count>` | int | `50` | Number of log entries to show (0 or --all for all) |
+| `--clear` | boolean | `false` | Clear logs after viewing |
+| `-f, --follow` | boolean | `false` | Follow logs (continuously show new entries) |
+| `--all` | boolean | `false` | Show all log entries |
+
+**Examples:**
+```bash
+# View last 50 log entries
+tuios logs
+
+# View last 100 log entries
+tuios logs -n 100
+
+# View all stored log entries
+tuios logs --all
+
+# Clear logs after viewing
+tuios logs --clear
+
+# Follow logs (continuously show new entries)
+tuios logs -f
+```
+
+---
+
+## Inspection Flags
+
+### `tuios list-windows`
+
+List all windows in the session.
+
+| Flag | Type | Default | Description |
+|------|------|---------|-------------|
+| `-s, --session <name>` | string | - | Target session (default: most recently active) |
+| `--json` | boolean | `false` | Output as JSON |
+
+**Examples:**
+```bash
+# List all windows (table format)
+tuios list-windows
+
+# List as JSON for scripting
+tuios list-windows --json
+
+# Use with jq to get focused window ID
+tuios list-windows --json | jq '.focused_window_id'
+```
+
+### `tuios get-window [id-or-name]`
+
+Get detailed info about a window.
+
+| Flag | Type | Default | Description |
+|------|------|---------|-------------|
+| `-s, --session <name>` | string | - | Target session (default: most recently active) |
+| `--json` | boolean | `false` | Output as JSON |
+
+**Examples:**
+```bash
+# Get focused window info
+tuios get-window
+
+# Get window by name
+tuios get-window "Server"
+
+# Get window by ID (from list-windows)
+tuios get-window abc123-def456
+
+# Get as JSON for scripting
+tuios get-window --json
+```
+
+### `tuios session-info`
+
+Get current session information.
+
+| Flag | Type | Default | Description |
+|------|------|---------|-------------|
+| `-s, --session <name>` | string | - | Target session (default: most recently active) |
+| `--json` | boolean | `false` | Output as JSON |
+
+**Examples:**
+```bash
+# Get session info (table format)
+tuios session-info
+
+# Get as JSON for scripting
+tuios session-info --json
+
+# Use with jq to check if tiling is enabled
+tuios session-info --json | jq '.tiling_enabled'
+```
+
+---
+
+## Version Flag
+
+```bash
+tuios --version
+```
+
+Displays version information including:
+- Version number
+- Git commit hash
+- Build date
+- Built by (goreleaser or manual)
+
+---
+
+## See Also
+
+- [Keybindings Reference](/cli/keybindings) - Complete keyboard shortcuts
+- [Tape Syntax Reference](/cli/tape-syntax) - Tape scripting language
+- [Configuration Guide](/configuration/overview) - TOML configuration options

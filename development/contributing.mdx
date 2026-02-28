@@ -1,0 +1,259 @@
+---
+title: Contributing
+description: Guidelines for contributing to the TUIOS project
+---
+
+Thank you for your interest in contributing to TUIOS! This guide will help you get started with contributing code, documentation, and bug reports.
+
+## Ways to Contribute
+
+There are many ways to contribute to TUIOS:
+
+- **Report bugs** - Open issues for bugs you encounter
+- **Suggest features** - Share ideas for new functionality
+- **Submit pull requests** - Fix bugs or add features
+- **Improve documentation** - Help make the docs clearer and more comprehensive
+- **Share your experience** - Blog posts, tutorials, and demos help grow the community
+
+## Code Contribution Workflow
+
+### 1. Fork and Clone
+
+Fork the repository on GitHub and clone your fork:
+
+```bash
+git clone https://github.com/YOUR-USERNAME/tuios.git
+cd tuios
+```
+
+### 2. Create a Branch
+
+Create a feature branch for your changes:
+
+```bash
+git checkout -b feat/my-new-feature
+```
+
+### 3. Make Your Changes
+
+Write your code following the project's coding conventions (see below).
+
+### 4. Test Your Changes
+
+Ensure all tests pass and add new tests if needed:
+
+```bash
+go test ./...
+```
+
+See the [Testing Guide](/development/testing) for more details.
+
+### 5. Commit Your Changes
+
+Use conventional commit messages (see below):
+
+```bash
+git add .
+git commit -m "feat: add window split functionality"
+```
+
+### 6. Push and Create a Pull Request
+
+Push your branch and create a pull request on GitHub:
+
+```bash
+git push origin feat/my-new-feature
+```
+
+## Go Coding Conventions
+
+TUIOS follows standard Go coding practices:
+
+### Code Style
+
+- **Run `go fmt`** - Always format your code before committing:
+  ```bash
+  go fmt ./...
+  ```
+
+- **Follow Effective Go** - Read the [Effective Go](https://go.dev/doc/effective_go) guide
+
+- **Use meaningful names** - Avoid single-letter variables except for loop indices
+
+- **Add package comments** - Every package should have a doc comment explaining its purpose
+
+- **Document exports** - All exported types, functions, and constants need godoc-style comments
+
+### Error Handling
+
+Wrap errors with context using `fmt.Errorf`:
+
+```go
+if err != nil {
+    return fmt.Errorf("failed to create window: %w", err)
+}
+```
+
+Log warnings for non-fatal issues:
+
+```go
+log.Printf("Warning: config file not found, using defaults")
+```
+
+Return early on errors to reduce nesting.
+
+### Testing Conventions
+
+- Use **table-driven tests** for multiple test cases
+- Name test files with `_test.go` suffix
+- Use `t.Run()` for subtests
+- Add benchmarks with `Benchmark*` prefix
+
+Example table-driven test:
+
+```go
+func TestParser(t *testing.T) {
+    tests := []struct {
+        name     string
+        input    string
+        expected string
+    }{
+        {"basic", "hello", "hello"},
+        {"quoted", "\"world\"", "world"},
+    }
+
+    for _, tt := range tests {
+        t.Run(tt.name, func(t *testing.T) {
+            result := Parse(tt.input)
+            if result != tt.expected {
+                t.Errorf("got %v, want %v", result, tt.expected)
+            }
+        })
+    }
+}
+```
+
+## Commit Message Format
+
+Use [Conventional Commits](https://www.conventionalcommits.org/) format:
+
+```
+<type>: <description>
+
+[optional body]
+
+[optional footer]
+```
+
+### Types
+
+- `feat:` - New feature
+- `fix:` - Bug fix
+- `docs:` - Documentation changes
+- `refactor:` - Code refactoring (no functional changes)
+- `test:` - Adding or updating tests
+- `chore:` - Maintenance tasks (dependencies, build scripts)
+- `perf:` - Performance improvements
+- `style:` - Code style changes (formatting, naming)
+
+### Examples
+
+```bash
+feat: add configurable dockbar position
+fix: prevent panic when closing last window on Linux
+docs: update keybindings reference for Ctrl+B prefix
+refactor: extract window layout logic into separate package
+test: add integration tests for tape scripting
+chore: update dependencies to latest versions
+```
+
+### Writing Good Commit Messages
+
+- Use imperative mood: "add feature" not "added feature"
+- Keep the subject line under 50 characters
+- Capitalize the subject line
+- Don't end the subject line with a period
+- Separate subject from body with a blank line
+- Wrap the body at 72 characters
+- Explain **why** not **what** in the body
+
+## Pull Request Process
+
+### Before Submitting
+
+1. **Update documentation** - Add or update relevant docs
+2. **Add tests** - Include tests for new functionality
+3. **Run tests** - Ensure `go test ./...` passes
+4. **Check formatting** - Run `go fmt ./...`
+5. **Update CHANGELOG** - Add entry if applicable
+
+### Pull Request Guidelines
+
+- **Write a clear title** - Use conventional commit format
+- **Describe your changes** - Explain what and why in the PR description
+- **Reference issues** - Link related issues ("Fixes #123")
+- **Keep PRs focused** - One feature or fix per PR
+- **Respond to feedback** - Address review comments promptly
+- **Update your branch** - Rebase on main if needed
+
+### PR Template
+
+```markdown
+## Description
+Brief description of the changes
+
+## Motivation
+Why are these changes needed?
+
+## Changes
+- List of specific changes
+- Another change
+
+## Testing
+How were these changes tested?
+
+## Screenshots (if applicable)
+Add screenshots for UI changes
+
+## Checklist
+- [ ] Tests pass (`go test ./...`)
+- [ ] Code formatted (`go fmt ./...`)
+- [ ] Documentation updated
+- [ ] Commits follow conventional commit format
+```
+
+## Code Review Process
+
+All pull requests require review before merging:
+
+1. **Automated checks** - CI runs tests and linters
+2. **Code review** - Maintainers review your code
+3. **Feedback** - Address any requested changes
+4. **Approval** - Once approved, your PR will be merged
+
+### Review Timeline
+
+Maintainers aim to review PRs within a few days. For urgent fixes, mention this in the PR.
+
+## Getting Help
+
+- **GitHub Issues** - Ask questions or report bugs
+- **Pull Request Comments** - Discuss specific implementation details
+- **GitHub Discussions** - General questions and community discussion
+
+## Code of Conduct
+
+Be respectful and constructive:
+
+- Use welcoming and inclusive language
+- Be respectful of differing viewpoints
+- Accept constructive criticism gracefully
+- Focus on what's best for the community
+- Show empathy towards other contributors
+
+## Additional Resources
+
+- [Architecture Guide](/development/architecture) - Technical architecture and design patterns
+- [Building from Source](/development/building) - Build instructions and requirements
+- [Testing Guide](/development/testing) - How to run and write tests
+- [Effective Go](https://go.dev/doc/effective_go) - Go programming guide

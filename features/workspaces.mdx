@@ -1,0 +1,359 @@
+---
+title: 'Workspaces'
+description: 'Organize your terminal windows across 9 independent workspaces'
+icon: 'grid-2x2'
+---
+
+## Overview
+
+TUIOS provides **9 independent workspaces** for organizing your terminal windows. Think of workspaces as virtual desktops - each one can contain multiple windows with their own layout, and you can quickly switch between them.
+
+Workspaces are perfect for:
+- Separating different projects or contexts
+- Organizing development, monitoring, and operations tasks
+- Creating dedicated environments for specific workflows
+- Reducing clutter by grouping related windows together
+
+## Switching Workspaces
+
+### Quick Switch
+
+The fastest way to switch workspaces is using keyboard shortcuts:
+
+<CodeGroup>
+```bash Linux
+# Switch to workspace 1-9
+Alt+1  # Workspace 1
+Alt+2  # Workspace 2
+Alt+3  # Workspace 3
+# ... and so on through Alt+9
+```
+
+```bash macOS
+# Switch to workspace 1-9
+Option+1  # Workspace 1 (⌥+1)
+Option+2  # Workspace 2 (⌥+2)
+Option+3  # Workspace 3 (⌥+3)
+# ... and so on through Option+9
+```
+</CodeGroup>
+
+<Note>
+On macOS, the `Option` key (⌥) is used instead of `Alt`. The default configuration automatically handles this platform difference.
+</Note>
+
+### Prefix-Based Switching
+
+Alternatively, use the prefix key followed by workspace menu:
+
+```bash
+# Using prefix key (Ctrl+B by default)
+Ctrl+B w 1    # Switch to workspace 1
+Ctrl+B w 2    # Switch to workspace 2
+# ... etc
+```
+
+### CLI Remote Control
+
+Switch workspaces from the command line using remote control:
+
+```bash
+# Switch to workspace 2 in running session
+tuios run-command SwitchWorkspace 2
+
+# Switch in a specific session
+tuios run-command -s mysession SwitchWorkspace 3
+```
+
+## Moving Windows Between Workspaces
+
+### Move and Follow
+
+The most common operation is to move the focused window to another workspace and switch to that workspace:
+
+<CodeGroup>
+```bash Linux
+# Move window to workspace and follow
+Alt+Shift+1  # Move to workspace 1 and follow
+Alt+Shift+2  # Move to workspace 2 and follow
+# ... and so on
+```
+
+```bash macOS
+# Move window to workspace and follow
+Option+Shift+1  # Move to workspace 1 and follow
+Option+Shift+2  # Move to workspace 2 and follow
+# ... and so on
+```
+</CodeGroup>
+
+### Move Without Following
+
+To move a window to another workspace without switching to it, use the prefix menu:
+
+```bash
+Ctrl+B w Shift+1  # Move to workspace 1 (stay on current workspace)
+Ctrl+B w Shift+2  # Move to workspace 2 (stay on current workspace)
+```
+
+### CLI Window Movement
+
+```bash
+# Move focused window to workspace 3
+tuios run-command MoveToWorkspace 3
+```
+
+## Workspace State
+
+### Persistence
+
+Each workspace independently maintains:
+- **Window positions and sizes** - Layouts are preserved per workspace
+- **Tiling configuration** - Each workspace can have tiling on or off
+- **Custom layouts** - Manual split configurations persist
+- **Focus history** - When you return to a workspace, the previously focused window is restored
+- **Master ratio settings** - Resize adjustments are workspace-specific
+
+### Session Persistence
+
+When using daemon mode (`tuios new` / `tuios attach`), all workspace state persists across detach/reattach:
+
+```bash
+# Create a persistent session
+tuios new myproject
+
+# Set up workspaces 1-3 with different windows
+# ... work for a while ...
+
+# Detach (Ctrl+B d)
+# ... later ...
+
+# Reattach - all workspaces and windows are restored
+tuios attach myproject
+```
+
+## Workspace Indicators
+
+The dockbar (status bar) shows workspace information:
+
+- **Current workspace number** - Displayed prominently (e.g., `WS 1`)
+- **Window count per workspace** - Visual indicators show which workspaces have windows
+- **Active workspace highlight** - The current workspace is highlighted
+
+<Info>
+Empty workspaces are dimmed in the indicator. This makes it easy to see at a glance which workspaces are in use.
+</Info>
+
+## Practical Workflows
+
+### Development Environment Setup
+
+```bash
+# Workspace 1: Code editor
+Alt+1
+n  # New window
+i  # Enter terminal mode
+vim src/main.go
+
+# Workspace 2: Build and test
+Alt+2
+n
+i
+go test -v ./...
+
+# Workspace 3: Git operations
+Alt+3
+n
+i
+tig  # Or your preferred git UI
+
+# Workspace 4: Server logs
+Alt+4
+n
+i
+tail -f /var/log/app.log
+```
+
+### Quick Context Switch
+
+```bash
+# Jump between contexts instantly
+Alt+1  # Back to code
+Alt+4  # Check logs
+Alt+2  # Run tests
+Alt+1  # Return to code
+```
+
+### Project Organization
+
+Organize multiple projects across workspaces:
+
+- **Workspace 1-3**: Project A (frontend, backend, database)
+- **Workspace 4-6**: Project B (microservices)
+- **Workspace 7**: System monitoring
+- **Workspace 8**: Email/chat clients
+- **Workspace 9**: Scratch/temporary work
+
+### Multi-Client Setup
+
+When using SSH or web terminals, each client can be on different workspaces in the same session:
+
+```bash
+# Terminal 1: ssh to server
+ssh user@server
+tuios attach shared
+Alt+1  # Work on workspace 1
+
+# Terminal 2: On same server
+ssh user@server  
+tuios attach shared
+Alt+2  # Work on workspace 2
+
+# Both clients share the same session but can view different workspaces
+```
+
+## Implementation Details
+
+### Source Code Reference
+
+Workspace functionality is implemented in `internal/app/workspace.go` with key functions:
+
+- `SwitchToWorkspace(workspace int)` - Handles workspace switching with animation cleanup and layout restoration
+- `MoveWindowToWorkspace(windowIndex, workspace int)` - Moves window without following
+- `MoveWindowToWorkspaceAndFollow(windowIndex, workspace int)` - Moves and switches
+- `GetWorkspaceWindowCount(workspace int)` - Counts windows in a workspace
+
+### Memory Efficiency
+
+Workspaces are lightweight:
+- No duplication of window data
+- Windows store their workspace number
+- State maps are used for per-workspace configuration
+- Only visible windows (current workspace) are rendered
+
+### Multi-Client Coordination
+
+In daemon mode with multiple clients:
+- Each client can be on a different workspace
+- PTY subscriptions are workspace-aware (only visible windows stream output)
+- Workspace switches are local to each client
+- State synchronization keeps all clients consistent
+
+## Configuration
+
+Workspace keybindings are configurable in `~/.config/tuios/config.toml`:
+
+```toml
+# Default workspace switch bindings (Linux)
+[keybindings.workspace]
+"alt+1" = "SwitchToWorkspace1"
+"alt+2" = "SwitchToWorkspace2"
+# ... etc
+
+# Default workspace move bindings (Linux)  
+"alt+shift+1" = "MoveToWorkspace1AndFollow"
+"alt+shift+2" = "MoveToWorkspace2AndFollow"
+# ... etc
+```
+
+On macOS, these automatically use `opt+` (Option key) instead of `alt+`.
+
+### Customizing Workspace Count
+
+Currently, TUIOS supports exactly 9 workspaces. This is a design choice balancing:
+- Single-digit keyboard shortcuts (1-9)
+- Sufficient organization capability
+- Memory and performance efficiency
+
+<Tip>
+If you need more separation, consider using multiple sessions (`tuios new project1`, `tuios new project2`) instead of more workspaces.
+</Tip>
+
+## Troubleshooting
+
+### Windows Disappear After Workspace Switch
+
+**Cause**: You moved a window to another workspace unintentionally.
+
+**Solution**: Check all workspaces by cycling through with `Alt+1` through `Alt+9`. The window is still there.
+
+### Tiling Broken After Workspace Switch
+
+**Cause**: Each workspace has independent tiling state.
+
+**Solution**: 
+```bash
+# Re-enable tiling on the current workspace
+t  # Toggle tiling on
+
+# Or via prefix
+Ctrl+B Space
+```
+
+### Focus Lost When Switching to Empty Workspace
+
+**Expected behavior**: When switching to a workspace with no windows, you're automatically put into Window Management Mode. Press `n` to create a new window.
+
+### Workspace State Not Persisting
+
+**Cause**: Running in local mode instead of daemon mode.
+
+**Solution**: Use persistent sessions:
+```bash
+# Instead of just "tuios", use:
+tuios new mysession  # State persists across detach/reattach
+```
+
+## Related Documentation
+
+- [Tiling](/features/tiling) - Each workspace can have independent tiling configuration
+- [Sessions](/features/sessions) - Workspace state persists in daemon mode
+- [Keybindings](/cli/keybindings) - Customize workspace shortcuts
+- [CLI Reference](/cli/main-commands) - Remote control commands for workspace management
+
+## Scripting Examples
+
+### Create Multi-Workspace Layout
+
+```bash
+#!/bin/bash
+# setup-workspaces.sh - Create a development environment
+
+# Workspace 1: Editor
+tuios run-command SwitchWorkspace 1
+tuios run-command NewWindow "editor"
+tuios send-keys --literal --raw "vim ." && tuios send-keys Enter
+
+# Workspace 2: Terminal
+tuios run-command SwitchWorkspace 2  
+tuios run-command NewWindow "terminal"
+
+# Workspace 3: Logs
+tuios run-command SwitchWorkspace 3
+tuios run-command NewWindow "logs"
+tuios send-keys --literal --raw "tail -f app.log" && tuios send-keys Enter
+
+# Return to workspace 1
+tuios run-command SwitchWorkspace 1
+```
+
+### Monitor Workspace Usage
+
+```bash
+#!/bin/bash
+# workspace-summary.sh - Show window distribution across workspaces
+
+tuios session-info --json | jq -r '
+  .workspace_windows | 
+  to_entries | 
+  map("Workspace \(.key + 1): \(.value) windows") | 
+  .[]'
+```
+
+Output:
+```
+Workspace 1: 3 windows
+Workspace 2: 2 windows
+Workspace 3: 0 windows
+...
+```

@@ -1,0 +1,395 @@
+---
+title: Core Components
+description: Deep dive into TUIOS's key components and their responsibilities
+---
+
+## Window Manager
+
+### OS Struct
+
+**Location**: `internal/app/os.go:80-217`
+
+The `OS` struct is the **central application state** managing all windows, workspaces, and user interactions:
+
+```go
+type OS struct {
+    Windows            []*terminal.Window  // All terminal windows
+    FocusedWindow      int                 // Index of focused window
+    Mode               Mode                // WindowManagementMode or TerminalMode
+    CurrentWorkspace   int                 // Active workspace (1-9)
+    WorkspaceFocus     map[int]int         // Focused window per workspace
+    AutoTiling         bool                // Tiling mode enabled
+    WorkspaceTrees     map[int]*layout.BSPTree  // BSP tree per workspace
+    Animations         []*ui.Animation     // Active animations
+    // ... 50+ more fields
+}
+```
+
+Key responsibilities:
+- **Window lifecycle**: Create, focus, close windows (`os.go:471-562`, `os.go:574-688`)
+- **Workspace management**: Switch workspaces, move windows between them (`internal/app/workspace.go`)
+- **Mode switching**: Toggle between Window Management and Terminal modes (`os.go:23-31`)
+- **State synchronization**: Sync state to daemon for multi-client sessions (`os.go:114-115`)
+
+### Window Lifecycle
+
+**Creation** (`internal/app/os.go:471-562`):
+
+```go
+func (m *OS) AddWindow(title string) *OS {
+    // 1. Generate unique ID
+    // 2. Allocate PTY and spawn shell
+    // 3. Create VT emulator instance
+    // 4. Add to current workspace
+    // 5. Auto-tile if enabled
+    // 6. Focus new window
+}
+```
+
+**Deletion** (`internal/app/os.go:574-688`):
+
+```go
+func (m *OS) DeleteWindow(i int) *OS {
+    // 1. Close PTY and kill shell
+    // 2. Clean up VT emulator
+    // 3. Remove from window list
+    // 4. Update focus to next visible window
+    // 5. Retile if in tiling mode
+}
+```
+
+## Terminal Emulation
+
+### Window Component
+
+**Location**: `internal/terminal/window.go`
+
+Each terminal window manages:
+- **PTY lifecycle**: Spawn, resize, close pseudo-terminal
+- **VT emulator**: Parse ANSI output and maintain screen buffer
+- **Content caching**: Cache rendered output to avoid redundant parsing
+- **Selection state**: Track text selection for copy mode
+
+```go
+type Window struct {
+    ID          string          // Unique identifier
+    Title       string          // Window title
+    X, Y        int             // Position
+    Width, Height int           // Dimensions
+    Z           int             // Z-index for stacking
+    Terminal    *vt.Emulator    // VT100 emulator
+    Pty         *os.File        // Pseudo-terminal
+    Workspace   int             // Workspace number (1-9)
+    Minimized   bool            // Minimized state
+    // ... 40+ more fields
+}
+```
+
+### VT Emulator
+
+**Location**: `internal/vt/emulator.go:21-100`
+
+The VT emulator implements **ANSI/VT100 terminal emulation**:
+
+```go
+type Emulator struct {
+    scrs     [2]Screen    // Main and alternate screen buffers
+    scr      *Screen      // Currently active screen
+    parser   *ansi.Parser // ANSI escape sequence parser
+    modes    ansi.Modes   // Terminal modes (origin, wraparound, etc.)
+    // ... more fields
+}
+```
+
+**Key features**:
+- **ANSI parser**: State machine for control sequences (`internal/vt/emulator.go`)
+- **Screen buffers**: Main and alternate screen support (`internal/vt/screen.go`)
+- **Scrollback**: 10,000 line history buffer (`internal/vt/scrollback.go`)
+- **CSI handlers**: Cursor movement, colors, attributes (`internal/vt/csi_*.go`)
+
+**Supported sequences**:
+- Cursor positioning (CUP, CUU, CUD, CUF, CUB)
+- Erase operations (ED, EL)
+- SGR attributes (colors, bold, italic, underline)
+- Scrolling regions (DECSTBM)
+- Alternate screen (DECSET/DECRST 1049)
+
+See `internal/vt/csi.go` for CSI sequence routing.
+
+### PTY Interface
+
+**Platform-specific implementations**:
+
+**Unix** (`internal/terminal/pty_unix.go`):
+- Uses `/dev/ptmx` for PTY allocation
+- `termios` for terminal attributes
+- `SIGWINCH` for window size changes
+
+**Windows** (`internal/terminal/pty_windows.go`):
+- Uses ConPTY API (Windows 10+)
+- Automatic shell detection (PowerShell, cmd.exe)
+- Resize via ConPTY resize API
+
+**Shell detection**:
+1. Check `$SHELL` environment variable (Unix)
+2. Fallback to `/bin/bash`, `/bin/sh` (Unix)
+3. Fallback to `powershell.exe`, `cmd.exe` (Windows)
+
+## Rendering Engine
+
+### Layer Composition
+
+**Location**: `internal/app/render.go:14-144`
+
+The rendering engine uses **Lipgloss layers** for compositing:
+
+```go
+func (m *OS) GetCanvas(render bool) *lipgloss.Canvas {
+    canvas := lipgloss.NewCanvas(m.Width, m.Height)
+    layers := []*lipgloss.Layer{}
+
+    // 1. Render visible windows
+    for i, window := range m.Windows {
+        if window.Workspace != m.CurrentWorkspace { continue }
+        if window.Minimized { continue }
+
+        // Viewport culling
+        if !isVisible(window) { continue }
+
+        // Render window content
+        content := m.renderTerminal(window, isFocused, ...)
+        layer := lipgloss.NewLayer(content)
+            .X(window.X)
+            .Y(window.Y)
+            .Z(window.Z)
+        layers = append(layers, layer)
+    }
+
+    // 2. Add overlays (dock, status, notifications)
+    // 3. Compose all layers
+    canvas.Compose(lipgloss.NewCompositor(layers...))
+    return canvas
+}
+```
+
+**Optimizations**:
+- **Viewport culling**: Skip windows outside visible area (`render.go:57-64`)
+- **Content caching**: Reuse cached layers when content unchanged (`render.go:83-86`)
+- **Z-index sorting**: Stack windows by priority (`render.go:115-118`)
+
+### Style Cache
+
+**Location**: `internal/app/stylecache.go`
+
+The style cache provides **40-60% allocation reduction** by caching Lipgloss styles:
+
+```go
+type StyleCache struct {
+    cache   map[uint64]lipgloss.Style  // Hash -> Style mapping
+    maxSize int                        // Max entries (default: 1024)
+    hits    atomic.Uint64              // Cache hits
+    misses  atomic.Uint64              // Cache misses
+}
+```
+
+**How it works** (`stylecache.go:120-153`):
+
+1. **Hash cell attributes**: Combine foreground, background, bold, italic, etc.
+2. **Cache lookup**: Check if style with identical attributes exists
+3. **Reuse or create**: Return cached style on hit, create and cache on miss
+4. **Automatic eviction**: When full, remove half the entries (LRU approximation)
+
+**Usage**:
+
+```go
+cache := app.GetGlobalStyleCache()
+style := cache.Get(cell, isCursor, optimized)
+```
+
+See [Performance](/development/performance) for cache statistics and tuning.
+
+## Input System
+
+### Input Handler
+
+**Location**: `internal/input/handler.go:19-83`
+
+The input handler **routes events** based on current mode:
+
+```go
+func HandleInput(msg tea.Msg, o *app.OS) (tea.Model, tea.Cmd) {
+    switch msg := msg.(type) {
+    case tea.KeyPressMsg:
+        return HandleKeyPress(msg, o)
+    case tea.MouseClickMsg:
+        return handleMouseClick(msg, o)
+    case tea.MouseMotionMsg:
+        return handleMouseMotion(msg, o)
+    }
+}
+```
+
+### Keyboard Handling
+
+**Location**: `internal/input/keyboard.go`
+
+**Mode-based routing**:
+
+```go
+func HandleKeyPress(msg tea.KeyPressMsg, o *app.OS) (*app.OS, tea.Cmd) {
+    // 1. Check for prefix key (Ctrl+B)
+    if isPrefixKey(msg) {
+        o.PrefixActive = true
+        return o, nil
+    }
+
+    // 2. Handle prefix commands
+    if o.PrefixActive {
+        return handlePrefixCommand(msg, o)
+    }
+
+    // 3. Route based on mode
+    if o.Mode == app.TerminalMode {
+        return forwardToTerminal(msg, o)
+    } else {
+        return handleWindowManagement(msg, o)
+    }
+}
+```
+
+**Prefix system** (tmux-style):
+- `Ctrl+B, w`: Workspace commands
+- `Ctrl+B, m`: Minimize/restore
+- `Ctrl+B, t`: Tiling commands
+- `Ctrl+B, [`: Copy mode
+
+See `internal/config/registry.go` for full keybind registry.
+
+### Mouse Handling
+
+**Location**: `internal/input/mouse.go`
+
+**Mouse events**:
+
+```go
+func handleMouseClick(msg tea.MouseClickMsg, o *app.OS) (*app.OS, tea.Cmd) {
+    // 1. Check if clicking window title bar
+    if clickedTitleBar(msg, o) {
+        o.Dragging = true
+        return o, nil
+    }
+
+    // 2. Check if clicking window corner (resize)
+    if clickedCorner(msg, o) {
+        o.Resizing = true
+        return o, nil
+    }
+
+    // 3. Focus window and enter terminal mode
+    o.FocusWindow(windowIndex)
+    o.Mode = app.TerminalMode
+}
+```
+
+**Drag and resize**:
+- **Drag**: Click and hold title bar, move mouse
+- **Resize**: Click and hold corner, drag to new size
+- **Snap**: Drag to screen edge for auto-snap
+
+## Configuration System
+
+### Config Loading
+
+**Location**: `internal/config/userconfig.go`
+
+TUIOS loads configuration from **TOML files**:
+
+1. System config: `/etc/tuios/config.toml`
+2. User config: `~/.config/tuios/config.toml`
+3. CLI flags: Override config values
+
+**Example config**:
+
+```toml
+[general]
+theme = "catppuccin-mocha"
+default_shell = "/bin/zsh"
+
+[keybindings]
+leader_key = "ctrl+b"
+
+[window]
+default_width = 80
+default_height = 24
+
+[performance]
+style_cache_size = 1024
+```
+
+### Keybind Registry
+
+**Location**: `internal/config/registry.go`
+
+The keybind registry maps **key sequences to actions**:
+
+```go
+type KeybindRegistry struct {
+    bindings map[string]ActionFunc  // "ctrl+b, w, 1" -> SwitchWorkspace(1)
+    actions  map[string]ActionInfo  // Action descriptions
+}
+```
+
+**Action registration**:
+
+```go
+registry.Register("new_window", ActionInfo{
+    Description: "Create a new terminal window",
+    Category:    "Window Management",
+    DefaultKey:  "ctrl+b, c",
+})
+```
+
+See `/keybindings` documentation for full list of actions.
+
+## Layout System
+
+### BSP Tiling
+
+**Location**: `internal/layout/bsp.go:90-100`
+
+Binary Space Partitioning (BSP) provides **flexible window tiling**:
+
+```go
+type BSPTree struct {
+    Root        *TileNode      // Root of the tree
+    WindowCount int            // Number of windows
+}
+
+type TileNode struct {
+    Parent     *TileNode   // Parent node
+    Left       *TileNode   // Left/Top child
+    Right      *TileNode   // Right/Bottom child
+    WindowID   int         // Window ID (leaf nodes)
+    SplitType  SplitType   // Vertical or Horizontal
+    SplitRatio float64     // Split position (0.0-1.0)
+}
+```
+
+**Insertion schemes**:
+- **Spiral**: Alternating vertical/horizontal splits (bspwm-style)
+- **Longest Side**: Split along longest dimension
+- **Alternate**: Strict vertical/horizontal alternation
+
+**Operations**:
+- Insert window: `tree.InsertWindow(id, scheme)`
+- Remove window: `tree.RemoveWindow(id)`
+- Apply layout: `tree.ApplyLayout(rect)`
+- Rotate splits: `tree.Rotate(direction)`
+
+See `/features/tiling` for user guide.
+
+## Related Documentation
+
+- [Architecture](architecture) - Overall architecture
+- [Performance](performance) - Optimization details
+- [Configuration](/configuration/overview) - Config options

@@ -1,0 +1,372 @@
+---
+title: Web Terminal
+description: Access TUIOS through your browser with the tuios-web binary
+---
+
+<Warning>
+**Security Notice:** The web terminal functionality is provided as a **separate binary** (`tuios-web`) to isolate the web server from the main TUIOS binary. This prevents the web server from being used as a potential backdoor.
+</Warning>
+
+TUIOS can be accessed through any modern web browser using the `tuios-web` binary, powered by WebGL rendering and WebTransport/WebSocket protocols.
+
+## Overview
+
+The `tuios-web` server provides:
+
+- **Full TUIOS Experience**: All TUIOS features work in the browser
+- **WebGL Rendering**: GPU-accelerated terminal rendering for smooth 60fps
+- **Dual Protocol Support**: WebTransport (QUIC) with WebSocket fallback
+- **Bundled Nerd Fonts**: No client-side font installation required
+- **Mouse Support**: Full mouse interaction with cell-based optimization
+- **Auto-Reconnect**: Automatic reconnection with exponential backoff
+- **Daemon Integration**: Persistent sessions with multi-client support
+
+## Installation
+
+**Separate Binary Required:**
+
+<CodeGroup>
+
+```bash Homebrew
+brew install tuios-web
+```
+
+```bash Arch Linux
+yay -S tuios-web-bin
+# or
+paru -S tuios-web-bin
+```
+
+```bash Go Install
+go install github.com/Gaurav-Gosain/tuios/cmd/tuios-web@latest
+```
+
+```bash GitHub Releases
+# Download tuios-web_*_<platform>_<arch>.tar.gz
+# Extract and run ./tuios-web
+```
+
+</CodeGroup>
+
+## Quick Start
+
+```bash
+# Start web server on default port (7681)
+tuios-web
+
+# Open in browser
+open http://localhost:7681
+
+# With custom port
+tuios-web --port 8080
+
+# With TUIOS flags forwarded
+tuios-web --theme dracula --show-keys
+```
+
+## Architecture
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                        Browser                               │
+├─────────────────────────────────────────────────────────────┤
+│  ┌─────────────┐    ┌─────────────┐    ┌─────────────────┐  │
+│  │  xterm.js   │◄──►│ terminal.js │◄──►│ WebTransport/WS │  │
+│  │  (WebGL)    │    │  (client)   │    │   (transport)   │  │
+│  └─────────────┘    └─────────────┘    └────────┬────────┘  │
+└─────────────────────────────────────────────────┼───────────┘
+                                                   │
+                                     ┌─────────────┴─────────────┐
+                                     │     QUIC (UDP:7682)       │
+                                     │  or WebSocket (TCP:7681)  │
+                                     └─────────────┬─────────────┘
+                                                   │
+┌─────────────────────────────────────────────────┼───────────┐
+│                     Server                      │           │
+├─────────────────────────────────────────────────┼───────────┤
+│  ┌──────────────┐    ┌──────────────┐    ┌─────┴─────┐     │
+│  │ HTTP Server  │    │  WT Server   │    │  Session  │     │
+│  │  (static)    │    │   (QUIC)     │    │  Manager  │     │
+│  │  :7681       │    │   :7682      │    └─────┬─────┘     │
+│  └──────────────┘    └──────────────┘          │           │
+│                                          ┌─────┴─────┐     │
+│                                          │    PTY    │     │
+│                                          │  (TUIOS)  │     │
+│                                          └───────────┘     │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### Key Technologies
+
+- **xterm.js**: Terminal emulation in the browser
+- **WebGL/Canvas**: Hardware-accelerated rendering
+- **WebTransport (QUIC)**: Low-latency communication over UDP
+- **WebSocket**: Fallback for universal browser support
+- **JetBrains Mono Nerd Font**: Bundled for proper icon rendering
+
+<Info>
+The web terminal functionality has been extracted into the [sip library](https://github.com/Gaurav-Gosain/sip), which can be used to serve any Bubble Tea application through the browser.
+</Info>
+
+## Configuration
+
+### Command-Line Flags
+
+| Flag | Default | Description |
+|------|---------|-------------|
+| `--port` | `7681` | HTTP server port |
+| `--host` | `localhost` | Server bind address |
+| `--read-only` | `false` | Disable client input (view-only) |
+| `--max-connections` | `0` | Max concurrent sessions (0=unlimited) |
+| `--default-session` | (none) | Default session name for all connections |
+| `--ephemeral` | `false` | Disable daemon mode (sessions don't persist) |
+
+### Daemon Mode (Default)
+
+By default, `tuios-web` connects to the TUIOS daemon for persistent sessions:
+
+```bash
+# Start web server with daemon mode (default)
+tuios-web
+
+# All clients share a specific session
+tuios-web --default-session shared
+
+# Disable daemon mode (standalone sessions)
+tuios-web --ephemeral
+```
+
+**Benefits of daemon mode:**
+- Sessions persist when browser tabs close
+- Multiple browsers/tabs can view the same session
+- State (windows, workspaces) preserved across reconnections
+- Integrates with `tuios ls`, `tuios attach`, and other session commands
+
+**Multi-client behavior:**
+- Terminal size uses minimum of all connected client dimensions
+- State changes broadcast to all clients in real-time
+- Clients notified when others join/leave
+
+### TUIOS Flags
+
+All TUIOS flags are forwarded to the spawned instance:
+
+```bash
+# Theme and appearance
+tuios-web --theme nord --border-style rounded
+
+# Debug mode
+tuios-web --debug --show-keys
+
+# ASCII-only mode
+tuios-web --ascii-only
+
+# Disable animations for instant transitions
+tuios-web --no-animations
+```
+
+### Client Settings
+
+Click the ⚙ button in the browser to access:
+
+- **Transport**: Auto, WebTransport, or WebSocket
+- **Renderer**: Auto, WebGL, Canvas, or DOM
+- **Font Size**: 10-24px
+
+Settings are persisted in localStorage.
+
+## Transport Protocols
+
+### WebTransport (QUIC)
+
+- **Port**: HTTP port + 1 (default: 7682)
+- **Protocol**: HTTP/3 over QUIC (UDP)
+- **Benefits**: Lower latency, better multiplexing, connection migration
+- **Requirements**: Chrome 97+, Edge 97+, or compatible browser
+
+Uses self-signed certificates with `serverCertificateHashes` for development. Certificates are valid for 10 days (Chrome requirement).
+
+### WebSocket (Fallback)
+
+- **Port**: Same as HTTP (default: 7681)
+- **Protocol**: WebSocket over TCP
+- **Benefits**: Universal browser support
+- **Used when**: WebTransport unavailable or explicitly selected
+
+## Rendering
+
+### WebGL (Default)
+
+GPU-accelerated rendering using xterm.js WebGL addon:
+- Smooth 60fps scrolling and updates
+- Lower CPU usage
+- Hardware-accelerated text rendering
+
+### Canvas (Fallback)
+
+2D canvas rendering:
+- Good performance on most devices
+- Used when WebGL unavailable or context lost
+
+### DOM (Fallback)
+
+Standard DOM-based rendering:
+- Most compatible option
+- Higher CPU usage
+- Used when Canvas addon unavailable
+
+## Examples
+
+### Example 1: Personal Web Access
+
+```bash
+# Start web server
+tuios-web --port 7681
+
+# Open in browser
+open http://localhost:7681
+```
+
+### Example 2: Shared Session for Team
+
+```bash
+# Start with shared default session
+tuios-web --host 0.0.0.0 --port 7681 --default-session team-debug
+
+# Team members open http://server:7681
+# All see the same session in real-time
+```
+
+### Example 3: Demo/Presentation Mode
+
+```bash
+# Start in read-only mode for audience
+tuios-web --host 0.0.0.0 --port 7681 --read-only --default-session demo
+
+# Presenter controls TUIOS separately
+tuios attach demo
+
+# Audience views at http://presenter:7681 (view-only)
+```
+
+### Example 4: Custom Theme for Web
+
+```bash
+# Start with specific theme and features
+tuios-web --theme dracula --show-keys --border-style thick
+```
+
+## Performance
+
+### Server Optimizations
+
+- **Buffer Pools**: Reusable buffers reduce GC pressure
+- **Atomic Counters**: Lock-free connection counting
+- **Direct Streaming**: No intermediate buffering for PTY output
+- **Structured Logging**: charmbracelet/log with configurable levels
+
+### Client Optimizations
+
+- **requestAnimationFrame Batching**: Terminal writes batched per frame
+- **Mouse Deduplication**: Only sends events when cell position changes
+- **Pre-allocated Buffers**: Reusable send/receive buffers
+- **Cached DOM Elements**: No repeated querySelector calls
+
+### Typical Performance
+
+| Metric | Value |
+|--------|-------|
+| Latency (local) | Less than 5ms |
+| Latency (LAN) | Less than 20ms |
+| Mouse events filtered | 80-95% |
+| Memory (per session) | ~10MB |
+
+## Security
+
+### Certificate Handling
+
+For development, TUIOS generates a self-signed ECDSA P-256 certificate:
+- Valid for 10 days (Chrome WebTransport requirement)
+- Hash provided via `/cert-hash` endpoint
+- No browser certificate warning needed for WebTransport
+
+### Production Recommendations
+
+1. Use a reverse proxy (nginx, Caddy) with proper TLS
+2. Set `--host 127.0.0.1` and proxy external traffic
+3. Use `--max-connections` to limit resource usage
+4. Consider `--read-only` for public demos
+
+**Example nginx config:**
+
+```nginx
+server {
+    listen 443 ssl;
+    server_name terminal.example.com;
+
+    ssl_certificate /etc/letsencrypt/live/example.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/example.com/privkey.pem;
+
+    location / {
+        proxy_pass http://127.0.0.1:7681;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_set_header Host $host;
+    }
+}
+```
+
+### CORS
+
+All origins allowed by default. For production, configure `AllowOrigins` in the server config.
+
+## Troubleshooting
+
+### WebTransport Not Connecting
+
+1. Check browser support (Chrome 97+)
+2. Verify UDP port 7682 is accessible
+3. Check console for certificate hash errors
+4. Try forcing WebSocket in settings
+
+### Blank Terminal
+
+1. Check browser console for errors
+2. Verify fonts loaded (`document.fonts.check()`)
+3. Try switching renderer in settings
+4. Check if TUIOS process started (server logs)
+
+### High Latency
+
+1. Check network conditions
+2. Prefer WebTransport over WebSocket
+3. Use WebGL renderer for smoother updates
+4. Check server CPU usage
+
+### Session Not Closing
+
+If pressing `q` doesn't close the web session:
+1. Server sends `MsgClose` when PTY exits
+2. Check for browser console errors
+3. Verify session cleanup in server logs
+
+### Debug Mode
+
+```bash
+# Enable verbose logging
+tuios-web --debug
+```
+
+Server logs include:
+- Connection attempts and session lifecycle
+- Bytes sent/received per session
+- Terminal resize events
+- Error details
+
+## See Also
+
+- [SSH Server](/advanced/ssh-server) - SSH-based remote access
+- [Session Management](/cli/session-management) - Managing TUIOS sessions
+- [CLI Reference](/cli/main-commands) - Complete web command reference
+- [Sip Library](https://github.com/Gaurav-Gosain/sip) - Serve any Bubble Tea app in the browser

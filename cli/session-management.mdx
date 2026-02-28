@@ -1,0 +1,229 @@
+---
+title: Session Management
+description: Commands for creating, attaching to, and managing TUIOS sessions
+---
+
+## tuios new
+
+Create a new persistent TUIOS session and attach to it.
+
+```bash
+tuios new [session-name]
+```
+
+This starts a new session in the daemon (starting the daemon if needed) and immediately attaches you to it.
+
+Sessions persist even when you detach, allowing you to reconnect later with `tuios attach`.
+
+### Arguments
+
+| Argument | Required | Description |
+|----------|----------|-------------|
+| `session-name` | No | Name for the new session (auto-generated if omitted) |
+
+### Aliases
+
+- `n`
+
+### Examples
+
+<CodeGroup>
+
+```bash Auto-Generated Name
+# Create a new session with auto-generated name
+tuios new
+```
+
+```bash Named Session
+# Create a named session
+tuios new mysession
+tuios new development
+tuios new server-monitor
+```
+
+```bash Using Alias
+# Create session using short alias
+tuios n
+tuios n myproject
+```
+
+</CodeGroup>
+
+---
+
+## tuios attach
+
+Attach to an existing TUIOS session.
+
+```bash
+tuios attach [session-name] [flags]
+```
+
+If no session name is provided, attaches to the most recent session. The session must already exist (use `tuios new` to create one).
+
+This requires the TUIOS daemon to be running.
+
+### Arguments
+
+| Argument | Required | Description |
+|----------|----------|-------------|
+| `session-name` | No | Name of the session to attach to (most recent if omitted) |
+
+### Flags
+
+| Flag | Short | Type | Default | Description |
+|------|-------|------|---------|-------------|
+| `--create` | `-c` | boolean | `false` | Create session if it doesn't exist |
+
+### Aliases
+
+- `a`
+
+### Examples
+
+<CodeGroup>
+
+```bash Recent Session
+# Attach to the most recent session
+tuios attach
+tuios a
+```
+
+```bash Named Session
+# Attach to a specific named session
+tuios attach mysession
+tuios attach development
+```
+
+```bash Create if Missing
+# Attach and create session if it doesn't exist
+tuios attach mysession -c
+tuios attach newsession --create
+```
+
+</CodeGroup>
+
+---
+
+## tuios ls
+
+List all active TUIOS sessions.
+
+```bash
+tuios ls
+```
+
+Shows session names, window counts, and whether clients are attached.
+
+### Aliases
+
+- `list-sessions`
+
+### Examples
+
+<CodeGroup>
+
+```bash List Sessions
+# List all active sessions
+tuios ls
+tuios list-sessions
+```
+
+</CodeGroup>
+
+### Example Output
+
+```
+SESSION NAME    WINDOWS  ATTACHED
+mysession       3        yes
+development     5        no
+server          1        yes
+```
+
+---
+
+## tuios kill-session
+
+Terminate a TUIOS session and all its windows.
+
+```bash
+tuios kill-session <session-name>
+```
+
+This will close all windows in the session and disconnect any attached clients.
+
+### Arguments
+
+| Argument | Required | Description |
+|----------|----------|-------------|
+| `session-name` | Yes | Name of the session to terminate |
+
+### Examples
+
+<CodeGroup>
+
+```bash Kill Session
+# Terminate a specific session
+tuios kill-session mysession
+tuios kill-session development
+```
+
+</CodeGroup>
+
+<Warning>
+This command will permanently close all windows in the session. Make sure to save any important work before terminating a session.
+</Warning>
+
+---
+
+## tuios kill-server
+
+Stop the TUIOS daemon.
+
+```bash
+tuios kill-server
+```
+
+This will terminate all sessions and disconnect all clients.
+
+### Examples
+
+<CodeGroup>
+
+```bash Stop Daemon
+# Stop the TUIOS daemon
+tuios kill-server
+```
+
+</CodeGroup>
+
+<Warning>
+This command will terminate **all** active sessions and close **all** windows. Use with caution.
+</Warning>
+
+---
+
+## tuios start-server
+
+Start the TUIOS daemon in the background.
+
+```bash
+tuios start-server
+```
+
+The daemon manages persistent sessions. It starts automatically when you create or attach to a session, so you typically don't need to run this command manually.
+
+### Examples
+
+<CodeGroup>
+
+```bash Start Daemon
+# Manually start the daemon
+tuios start-server
+```
+
+</CodeGroup>
+
+<Note>
+This command is hidden from help output because the daemon starts automatically. You rarely need to use it directly.
+</Note>

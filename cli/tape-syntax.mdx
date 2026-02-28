@@ -1,0 +1,840 @@
+---
+title: 'Tape Syntax Reference'
+description: 'Complete reference for the TUIOS Tape scripting language'
+---
+
+Complete reference for the TUIOS Tape DSL (Domain-Specific Language) for automating terminal window management workflows.
+
+## Basic Syntax
+
+### Comments
+
+Lines starting with `#` are comments:
+
+```tape
+# This is a comment
+NewWindow  # Inline comments are not supported
+```
+
+### Command Structure
+
+Commands are case-sensitive:
+
+```tape
+CommandName [arguments...]
+```
+
+### String Literals
+
+Strings can be quoted with double quotes, single quotes, or backticks:
+
+```tape
+Type "hello world"
+Type 'hello world'
+Type `hello world`
+```
+
+Escape sequences are supported in double-quoted strings:
+
+```tape
+Type "Line 1\nLine 2\tTabbed"
+```
+
+### Duration Literals
+
+Durations support standard Go duration formats:
+
+```tape
+Sleep 500ms     # Milliseconds
+Sleep 2s        # Seconds
+Sleep 1.5s      # Decimal seconds
+Sleep 1m        # Minutes
+Sleep 1h        # Hours
+```
+
+---
+
+## Mode Management
+
+TUIOS has two primary modes: **Window Management Mode** and **Terminal Mode**.
+
+### `WindowManagementMode`
+
+Switch to window management mode for window operations.
+
+```tape
+WindowManagementMode
+```
+
+### `TerminalMode`
+
+Switch to terminal mode to send input to the focused window.
+
+```tape
+TerminalMode
+```
+
+**Workflow Pattern:**
+```tape
+WindowManagementMode  # Navigate/manage windows
+NewWindow
+TerminalMode          # Type into the window
+Type "ls -la"
+Enter
+WindowManagementMode  # Back to managing windows
+```
+
+---
+
+## Window Operations
+
+### `NewWindow`
+
+Create a new terminal window in the current workspace.
+
+```tape
+NewWindow
+Sleep 500ms  # Wait for window to initialize
+```
+
+### `CloseWindow`
+
+Close the currently focused window.
+
+```tape
+CloseWindow
+```
+
+### `NextWindow`
+
+Focus the next window in the current workspace.
+
+```tape
+NextWindow
+Sleep 200ms
+```
+
+### `PrevWindow`
+
+Focus the previous window in the current workspace.
+
+```tape
+PrevWindow
+Sleep 200ms
+```
+
+### `FocusWindow <id>`
+
+Focus a specific window by ID (advanced usage).
+
+```tape
+FocusWindow "window-uuid-here"
+```
+
+### `RenameWindow <name>`
+
+Rename the currently focused window.
+
+```tape
+RenameWindow "My Terminal"
+```
+
+### `MinimizeWindow`
+
+Minimize the currently focused window to the dock.
+
+```tape
+MinimizeWindow
+Sleep 300ms  # Wait for animation
+```
+
+### `RestoreWindow`
+
+Restore a minimized window.
+
+```tape
+RestoreWindow
+Sleep 300ms
+```
+
+---
+
+## Tiling and Layout
+
+### `ToggleTiling`
+
+Toggle tiling mode on/off for the current workspace.
+
+```tape
+ToggleTiling
+```
+
+### `EnableTiling`
+
+Explicitly enable tiling mode.
+
+```tape
+EnableTiling
+Sleep 300ms
+```
+
+### `DisableTiling`
+
+Explicitly disable tiling mode.
+
+```tape
+DisableTiling
+Sleep 300ms
+```
+
+### `SnapLeft`
+
+Snap the focused window to the left half of the screen.
+
+```tape
+SnapLeft
+Sleep 200ms
+```
+
+### `SnapRight`
+
+Snap the focused window to the right half of the screen.
+
+```tape
+SnapRight
+Sleep 200ms
+```
+
+### `SnapFullscreen`
+
+Snap the focused window to fullscreen.
+
+```tape
+SnapFullscreen
+Sleep 200ms
+```
+
+---
+
+## Workspace Management
+
+TUIOS supports 9 workspaces (numbered 1-9).
+
+### `SwitchWorkspace <number>`
+
+Switch to a specific workspace (1-9).
+
+```tape
+SwitchWorkspace 2
+Sleep 400ms
+```
+
+### `MoveToWorkspace <number>`
+
+Move the focused window to another workspace (without following it).
+
+```tape
+MoveToWorkspace 3
+```
+
+### `MoveAndFollowWorkspace <number>`
+
+Move the focused window to another workspace and switch to it.
+
+```tape
+MoveAndFollowWorkspace 2
+Sleep 400ms
+```
+
+---
+
+## Keyboard Input
+
+All keyboard input commands require **Terminal Mode** to be active.
+
+### `Type <text>`
+
+Type a string of text into the focused terminal.
+
+```tape
+TerminalMode
+Type "echo 'Hello, World!'"
+```
+
+### Basic Keys
+
+| Command | Description |
+|---------|-------------|
+| `Enter` | Press Enter |
+| `Space` | Press Space |
+| `Tab` | Press Tab |
+| `Backspace` | Press Backspace |
+| `Delete` | Press Delete |
+| `Escape` | Press Escape |
+
+**Example:**
+```tape
+Enter         # Press Enter
+Space         # Press Space
+Tab           # Press Tab
+Backspace     # Press Backspace
+Delete        # Press Delete
+Escape        # Press Escape
+```
+
+### Navigation Keys
+
+| Command | Description |
+|---------|-------------|
+| `Up` | Arrow up |
+| `Down` | Arrow down |
+| `Left` | Arrow left |
+| `Right` | Arrow right |
+| `Home` | Home key |
+| `End` | End key |
+
+**Example:**
+```tape
+Up            # Arrow up
+Down          # Arrow down
+Left          # Arrow left
+Right         # Arrow right
+Home          # Home key
+End           # End key
+```
+
+### Key Combinations
+
+Use `+` to combine modifier keys with regular keys:
+
+```tape
+Ctrl+c        # Control + C
+Ctrl+b        # TUIOS leader key
+Alt+1         # Alt + 1
+Shift+Tab     # Shift + Tab
+Ctrl+Alt+t    # Multiple modifiers
+```
+
+**Modifiers:**
+- `Ctrl` - Control key
+- `Alt` - Alt/Option key
+- `Shift` - Shift key
+
+---
+
+## Timing and Synchronization
+
+### `Sleep <duration>`
+
+Pause script execution for a specified duration.
+
+```tape
+Sleep 500ms
+Sleep 1s
+Sleep 1.5s
+```
+
+### `Wait <duration>`
+
+Alternative syntax for waiting (alias for Sleep).
+
+```tape
+Wait 500ms
+```
+
+### `WaitUntilRegex <pattern> [timeout]`
+
+Wait until the terminal output matches a regex pattern (with optional timeout in milliseconds).
+
+```tape
+TerminalMode
+Type "ls -la"
+Enter
+# Wait for command to complete (look for prompt)
+WaitUntilRegex "\\$" 3000
+```
+
+**Timeout:**
+- Default: 5000ms (5 seconds)
+- Specify custom timeout as second argument
+
+```tape
+WaitUntilRegex "test" 10000  # 10 second timeout
+```
+
+---
+
+## Configuration Commands
+
+### `SetConfig <path> <value>`
+
+Set a configuration option at runtime.
+
+```tape
+SetConfig dockbar_position top
+SetConfig border_style rounded
+SetConfig animations toggle
+```
+
+**Supported Configuration Paths:**
+- `dockbar_position` - Dockbar position: `top`, `bottom`, `left`, `right`
+- `border_style` - Border style: `rounded`, `normal`, `thick`, `double`, `hidden`, `block`, `ascii`
+- `animations` - Enable animations: `true`, `false`, `toggle`
+- `hide_window_buttons` - Hide window buttons: `true`, `false`
+
+### `SetTheme <name>`
+
+Change the active theme.
+
+```tape
+SetTheme dracula
+Sleep 500ms
+```
+
+### `SetDockbarPosition <position>`
+
+Change the dockbar position.
+
+```tape
+SetDockbarPosition top
+Sleep 300ms
+```
+
+**Positions:** `top`, `bottom`, `left`, `right`, `hidden`
+
+### `SetBorderStyle <style>`
+
+Change the window border style.
+
+```tape
+SetBorderStyle rounded
+Sleep 300ms
+```
+
+**Styles:** `rounded`, `normal`, `thick`, `double`, `hidden`, `block`, `ascii`, `outer-half-block`, `inner-half-block`
+
+### `EnableAnimations`
+
+Enable UI animations.
+
+```tape
+EnableAnimations
+```
+
+### `DisableAnimations`
+
+Disable UI animations.
+
+```tape
+DisableAnimations
+```
+
+### `ToggleAnimations`
+
+Toggle UI animations on/off.
+
+```tape
+ToggleAnimations
+```
+
+### `ShowNotification <message>`
+
+Display a notification message.
+
+```tape
+ShowNotification "Build complete!"
+Sleep 2s
+```
+
+---
+
+## BSP Tiling Commands
+
+### `Split <direction>`
+
+Split the focused window.
+
+```tape
+Split horizontal  # Split top/bottom
+Split vertical    # Split left/right
+```
+
+### `RotateSplit`
+
+Rotate split direction at focused window.
+
+```tape
+RotateSplit
+```
+
+### `EqualizeSplits`
+
+Equalize all splits (reset to 50/50 ratios).
+
+```tape
+EqualizeSplits
+```
+
+### `Preselect <direction>`
+
+Control where the next window spawns.
+
+```tape
+Preselect left    # Next window appears left
+Preselect right   # Next window appears right
+Preselect up      # Next window appears above
+Preselect down    # Next window appears below
+```
+
+### `FocusDirection <direction>`
+
+Focus a window in a direction.
+
+```tape
+FocusDirection left
+FocusDirection right
+FocusDirection up
+FocusDirection down
+```
+
+---
+
+## Advanced Commands
+
+### `Set <key> <value>`
+
+Set a variable (for future use in scripting).
+
+```tape
+# Future feature
+Set windowName "My Terminal"
+```
+
+### `Output <file>`
+
+Specify output file (for future screenshot/recording features).
+
+```tape
+# Future feature
+Output "screenshot.png"
+```
+
+### `Source <file>`
+
+Include another tape file (for future use).
+
+```tape
+# Future feature
+Source "setup.tape"
+```
+
+---
+
+## Best Practices
+
+### 1. Always Add Sleeps After Actions
+
+Give TUIOS time to process animations and state changes:
+
+```tape
+NewWindow
+Sleep 500ms    # Wait for window creation
+
+MinimizeWindow
+Sleep 300ms    # Wait for minimize animation
+```
+
+### 2. Explicit Mode Switching
+
+Always switch modes explicitly before performing mode-specific actions:
+
+```tape
+# GOOD
+WindowManagementMode
+NewWindow
+TerminalMode
+Type "ls"
+
+# BAD (mode might be wrong)
+NewWindow
+Type "ls"
+```
+
+### 3. Use Comments Generously
+
+Document complex workflows:
+
+```tape
+# Setup development environment
+WindowManagementMode
+EnableTiling
+
+# Create editor window
+NewWindow
+TerminalMode
+Type "vim main.go"
+Enter
+Sleep 800ms
+
+# Create build window
+WindowManagementMode
+NewWindow
+TerminalMode
+Type "go build -watch"
+Enter
+```
+
+### 4. Workspace Organization
+
+Use workspaces to group related windows:
+
+```tape
+# Workspace 1: Development
+SwitchWorkspace 1
+NewWindow  # Editor
+NewWindow  # Terminal
+
+# Workspace 2: Monitoring
+SwitchWorkspace 2
+NewWindow  # Logs
+NewWindow  # System stats
+```
+
+### 5. Consistent Timing
+
+Use consistent sleep durations for similar actions:
+
+```tape
+# Window creation: 500ms
+NewWindow
+Sleep 500ms
+
+# Window navigation: 200ms
+NextWindow
+Sleep 200ms
+
+# Animations: 300ms
+MinimizeWindow
+Sleep 300ms
+```
+
+---
+
+## Complete Command Reference
+
+### Mode Commands
+- `WindowManagementMode` - Switch to window management mode
+- `TerminalMode` - Switch to terminal mode
+
+### Window Commands
+- `NewWindow` - Create new window
+- `CloseWindow` - Close focused window
+- `NextWindow` - Focus next window
+- `PrevWindow` - Focus previous window
+- `FocusWindow <id>` - Focus specific window by ID
+- `RenameWindow <name>` - Rename focused window
+- `MinimizeWindow` - Minimize focused window
+- `RestoreWindow` - Restore minimized window
+
+### Layout Commands
+- `ToggleTiling` - Toggle tiling mode
+- `EnableTiling` - Enable tiling mode
+- `DisableTiling` - Disable tiling mode
+- `SnapLeft` - Snap to left half
+- `SnapRight` - Snap to right half
+- `SnapFullscreen` - Snap to fullscreen
+
+### Workspace Commands
+- `SwitchWorkspace <n>` - Switch to workspace (1-9)
+- `MoveToWorkspace <n>` - Move window to workspace
+- `MoveAndFollowWorkspace <n>` - Move window and follow
+
+### Keyboard Commands
+- `Type <text>` - Type text
+- `Enter` - Press Enter
+- `Space` - Press Space
+- `Tab` - Press Tab
+- `Backspace` - Press Backspace
+- `Delete` - Press Delete
+- `Escape` - Press Escape
+- `Up`, `Down`, `Left`, `Right` - Arrow keys
+- `Home`, `End` - Navigation keys
+- `Ctrl+<key>` - Control key combinations
+- `Alt+<key>` - Alt key combinations
+- `Shift+<key>` - Shift key combinations
+
+### Timing Commands
+- `Sleep <duration>` - Pause execution
+- `Wait <duration>` - Alias for Sleep
+- `WaitUntilRegex <pattern> [timeout]` - Wait for output pattern
+
+### Configuration Commands
+- `SetConfig <path> <value>` - Set configuration option
+- `SetTheme <name>` - Change theme
+- `SetDockbarPosition <pos>` - Change dockbar position
+- `SetBorderStyle <style>` - Change border style
+- `EnableAnimations` - Enable animations
+- `DisableAnimations` - Disable animations
+- `ToggleAnimations` - Toggle animations
+- `ShowNotification <msg>` - Show notification
+
+### BSP Tiling Commands
+- `Split <direction>` - Split window (horizontal/vertical)
+- `RotateSplit` - Rotate split direction
+- `EqualizeSplits` - Equalize all splits
+- `Preselect <direction>` - Preselect spawn direction
+- `FocusDirection <direction>` - Focus window by direction
+
+### Advanced Commands
+- `Set <key> <value>` - Set variable (future)
+- `Output <file>` - Set output file (future)
+- `Source <file>` - Include file (future)
+
+---
+
+## Examples
+
+### Example 1: Basic Workflow
+
+```tape
+# Create a simple dev environment
+WindowManagementMode
+EnableTiling
+Sleep 300ms
+
+# Editor window
+NewWindow
+Sleep 500ms
+TerminalMode
+Type "vim README.md"
+Enter
+Sleep 800ms
+
+# Terminal window
+WindowManagementMode
+NewWindow
+Sleep 500ms
+TerminalMode
+Type "ls -la"
+Enter
+```
+
+### Example 2: Multi-Workspace Setup
+
+```tape
+# Setup project workspaces
+WindowManagementMode
+
+# Workspace 1: Coding
+SwitchWorkspace 1
+EnableTiling
+NewWindow
+TerminalMode
+Type "vim main.go"
+Enter
+Sleep 500ms
+
+WindowManagementMode
+NewWindow
+TerminalMode
+Type "go run ."
+Enter
+
+# Workspace 2: Testing
+WindowManagementMode
+SwitchWorkspace 2
+NewWindow
+TerminalMode
+Type "go test -v ./..."
+Enter
+
+# Return to main workspace
+WindowManagementMode
+SwitchWorkspace 1
+```
+
+### Example 3: BSP Layout
+
+```tape
+WindowManagementMode
+EnableTiling
+
+# Create first window
+NewWindow
+Sleep 500ms
+
+# Preselect right for next window
+Preselect right
+NewWindow
+Sleep 500ms
+
+# Preselect down for third window
+Preselect down
+NewWindow
+Sleep 500ms
+
+# Equalize all splits
+EqualizeSplits
+```
+
+---
+
+## Running Tape Scripts
+
+### Interactive Playback
+
+Watch the script execute in real-time:
+
+```bash
+tuios tape play script.tape
+```
+
+**Controls:**
+- `Ctrl+P` - Pause/resume playback
+
+### Remote Execution
+
+Execute against a running session:
+
+```bash
+tuios tape exec script.tape
+tuios tape exec --session mysession script.tape
+```
+
+### Validation
+
+Check syntax without running:
+
+```bash
+tuios tape validate script.tape
+```
+
+---
+
+## Troubleshooting
+
+### Common Errors
+
+**"Unknown command"**
+- Check spelling and capitalization (commands are case-sensitive)
+
+**"Unexpected token"**
+- Check for missing quotes around strings
+
+**"Timeout waiting for pattern"**
+- Increase timeout or verify regex pattern matches expected output
+
+### Debugging Tips
+
+1. **Check mode:** Ensure you're in the correct mode (Window Management vs Terminal)
+2. **Add delays:** Increase `Sleep` durations if actions are happening too fast
+3. **Validate syntax:** Run `tuios tape validate script.tape` to check for errors
+4. **Test regex:** Test regex patterns separately before using in `WaitUntilRegex`
+
+---
+
+## See Also
+
+- [CLI Flags Reference](/cli/flags) - Command-line options
+- [Keybindings Reference](/cli/keybindings) - Keyboard shortcuts
+- [Configuration Guide](/configuration/overview) - TOML configuration options

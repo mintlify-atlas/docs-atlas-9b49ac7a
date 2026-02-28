@@ -1,0 +1,531 @@
+---
+title: 'Copy Mode'
+description: 'Vim-style scrollback navigation and text selection with 10,000 line buffer'
+icon: 'copy'
+---
+
+## Overview
+
+TUIOS provides a powerful **Vim-style copy mode** for navigating terminal scrollback and selecting text. With a **10,000 line scrollback buffer**, you can review command output, search through logs, and copy text using familiar Vim motions.
+
+<Note>
+Copy mode is inspired by tmux's copy mode and Vim's navigation, making it instantly familiar to terminal power users.
+</Note>
+
+### Key Features
+
+<CardGroup cols={2}>
+  <Card title="10,000 Line Buffer" icon="file-lines">
+    Massive scrollback history for reviewing logs and output
+  </Card>
+  <Card title="Vim Motions" icon="keyboard">
+    Navigate with h/j/k/l, w/b, gg/G, and more
+  </Card>
+  <Card title="Search & Highlight" icon="magnifying-glass">
+    Forward/backward search with regex support and n/N navigation
+  </Card>
+  <Card title="Visual Selection" icon="highlighter">
+    Character and line-wise visual modes for precise copying
+  </Card>
+</CardGroup>
+
+## Entering Copy Mode
+
+From any mode, use the leader key:
+
+```bash
+Ctrl+B [                 # Enter copy mode
+```
+
+The terminal freezes at the current output and a **"COPY MODE"** indicator appears in the status bar.
+
+## Basic Navigation
+
+Once in copy mode, use Vim-style motions:
+
+### Character Movement
+
+```bash
+h                        # Move left
+j                        # Move down
+k                        # Move up
+l                        # Move right
+
+# Arrow keys also work
+Left / Right / Up / Down
+```
+
+### Word Movement
+
+```bash
+w                        # Move forward to next word start
+W                        # Move forward to next WORD start (whitespace-separated)
+b                        # Move backward to previous word start
+B                        # Move backward to previous WORD start
+e                        # Move forward to word end
+E                        # Move forward to WORD end
+```
+
+<Info>
+**word** (lowercase) treats punctuation as boundaries. **WORD** (uppercase) only splits on whitespace.
+
+Example: `foo-bar` is two words but one WORD.
+</Info>
+
+### Line Movement
+
+```bash
+0                        # Jump to start of line
+^                        # Jump to first non-blank character
+$                        # Jump to end of line
+```
+
+### File-Level Navigation
+
+```bash
+gg                       # Jump to top of scrollback (oldest line)
+G                        # Jump to bottom (live output)
+{number}G                # Jump to line number (e.g., 10G)
+
+# Example: Jump to line 500
+500G
+```
+
+### Screen Navigation
+
+```bash
+Ctrl+U                   # Scroll up half page
+Ctrl+D                   # Scroll down half page
+Ctrl+B                   # Scroll up full page
+Ctrl+F                   # Scroll down full page
+```
+
+### Paragraph Movement
+
+```bash
+{                        # Jump to previous paragraph (empty line)
+}                        # Jump to next paragraph
+```
+
+<Tip>
+Paragraph movement is useful for navigating between sections of output or log entries separated by blank lines.
+</Tip>
+
+## Count Prefix
+
+Prefix any motion with a number to repeat it:
+
+```bash
+10j                      # Move down 10 lines
+5w                       # Move forward 5 words
+3{                       # Jump up 3 paragraphs
+15k                      # Move up 15 lines
+```
+
+## Character Search
+
+Find characters on the current line (like Vim's f/F/t/T):
+
+```bash
+f{char}                  # Find next occurrence of char on line
+F{char}                  # Find previous occurrence of char on line
+t{char}                  # Move cursor before next char
+T{char}                  # Move cursor after previous char
+
+;                        # Repeat last character search
+,                        # Repeat last search (opposite direction)
+```
+
+### Example
+
+```bash
+# On line: "function handleCopyModeKey(msg)"
+# Cursor at start
+
+fC                       # Jump to 'C' in Copy
+fK                       # Jump to 'K' in Key
+;                        # Next 'K' (none found, stay at current)
+F(                       # Jump backward to '('
+```
+
+## Search
+
+Search across all scrollback lines:
+
+```bash
+/                        # Search forward (opens search prompt)
+?                        # Search backward
+n                        # Next match
+N                        # Previous match
+Ctrl+L                   # Clear search highlights
+```
+
+### Search Workflow
+
+<Steps>
+  <Step title="Press /">
+    Opens search prompt at bottom of screen
+  </Step>
+  <Step title="Type pattern">
+    Enter search term (supports regex)
+  </Step>
+  <Step title="Press Enter">
+    Jumps to first match, highlights all matches
+  </Step>
+  <Step title="Navigate matches">
+    Use `n` (next) and `N` (previous)
+  </Step>
+  <Step title="Clear highlights">
+    Press `Ctrl+L` when done
+  </Step>
+</Steps>
+
+### Search Examples
+
+```bash
+/error                   # Find "error" in scrollback
+n                        # Next error
+N                        # Previous error
+
+/ERROR|WARN             # Regex: Find ERROR or WARN
+n                        # Next match
+
+?success                 # Search backward for "success"
+```
+
+<Note>
+Search is case-sensitive by default. The search pattern supports regular expressions.
+</Note>
+
+## Visual Selection
+
+Select text for copying:
+
+### Character-Wise Visual Mode
+
+```bash
+v                        # Enter visual character mode
+# Move cursor to extend selection
+y or c                   # Yank (copy) selection to clipboard
+Esc or q                 # Exit visual mode
+```
+
+### Line-Wise Visual Mode
+
+```bash
+V                        # Enter visual line mode (selects full lines)
+# Move cursor to extend selection
+y or c                   # Yank selection to clipboard
+Esc or q                 # Exit visual mode
+```
+
+### Selection Workflow
+
+<Steps>
+  <Step title="Position cursor">
+    Navigate to start of desired text
+  </Step>
+  <Step title="Enter visual mode">
+    Press `v` (character) or `V` (line)
+  </Step>
+  <Step title="Extend selection">
+    Use any motion (j/k, w/b, $/0, etc.)
+  </Step>
+  <Step title="Copy to clipboard">
+    Press `y` or `c`
+  </Step>
+</Steps>
+
+<Info>
+**Visual mode indicators**:
+- `-- VISUAL --` for character-wise
+- `-- VISUAL LINE --` for line-wise
+
+The selected region is highlighted.
+</Info>
+
+## Other Commands
+
+```bash
+%                        # Jump to matching bracket (like Vim)
+i                        # Exit copy mode and enter terminal mode
+q or Esc                 # Exit copy mode (return to previous mode)
+```
+
+## Scrollback Buffer Configuration
+
+The scrollback buffer size is configurable:
+
+### Via Config File
+
+Edit `~/.config/tuios/config.toml`:
+
+```toml
+[terminal]
+scrollback_lines = 10000  # Default: 10000, Min: 100, Max: 1000000
+```
+
+### Via CLI Flag
+
+```bash
+# Start with larger buffer
+tuios --scrollback-lines 50000
+
+# Start with minimal buffer (saves memory)
+tuios --scrollback-lines 1000
+```
+
+<Warning>
+Larger scrollback buffers use more memory. Each line stores cell data (character, styles, colors). A 50,000 line buffer with 120 columns uses approximately 24-30 MB per window.
+</Warning>
+
+## Practical Examples
+
+### Reviewing Build Output
+
+```bash
+# Run a build
+npm run build
+
+# Enter copy mode to review errors
+Ctrl+B [
+
+# Search for "error"
+/error
+n  # Next error
+n  # Next error
+
+# Jump to first error
+gg
+n
+
+# Copy error message
+v     # Start visual selection
+$     # Extend to end of line
+y     # Yank to clipboard
+
+# Exit copy mode
+q
+```
+
+### Extracting Log Lines
+
+```bash
+# Tail a log file
+tail -f /var/log/app.log
+
+# Enter copy mode when you see interesting output
+Ctrl+B [
+
+# Find the start of the relevant section
+/Request ID: abc123
+
+# Select the entire section
+V     # Visual line mode
+}     # Extend to next paragraph
+y     # Copy
+
+# Exit
+q
+```
+
+### Copying Command Output
+
+```bash
+# Run command
+ls -la
+
+# Copy entire output
+Ctrl+B [   # Enter copy mode
+gg         # Go to top
+VG         # Select all lines
+y          # Yank
+q          # Exit
+```
+
+### Navigating Long Help Text
+
+```bash
+# Show help
+tuios --help
+
+# Enter copy mode to navigate
+Ctrl+B [
+
+# Jump to specific section
+/Commands
+n          # Next occurrence
+
+# Scroll through sections
+Ctrl+D     # Down half page
+Ctrl+U     # Up half page
+
+# Exit when done
+q
+```
+
+## Mouse Support
+
+Copy mode also supports mouse interactions:
+
+- **Click**: Move cursor to clicked position
+- **Click and drag**: Start visual selection at click point and extend to drag endpoint
+- **Scroll wheel**: Scroll up/down through history
+
+<Tip>
+Mouse selection automatically enters visual character mode. Release the mouse button and press `y` to copy.
+</Tip>
+
+## Implementation Details
+
+### Source Code
+
+Copy mode is implemented across several files in `internal/input/`:
+
+- `copymode_handlers.go` - Main dispatcher and mode switching
+- `copymode_motion.go` - Movement commands (h/j/k/l, w/b, gg/G)
+- `copymode_search.go` - Search functionality and highlighting
+- `copymode_visual.go` - Visual selection modes
+- `copymode_char_search.go` - Character find commands (f/F/t/T)
+
+Scrollback rendering: `internal/app/render_scrollback_browser.go`
+
+### Memory Management
+
+Scrollback buffer uses a ring buffer for efficiency:
+- Fixed size (10,000 lines default)
+- Oldest lines are overwritten when buffer is full
+- Each line stores: cells (char + style), line attributes, wrap state
+- Per-window buffer (not shared)
+
+### Performance
+
+Copy mode rendering is optimized:
+- Viewport culling: Only visible lines are rendered
+- Line caching: Unchanged lines are cached
+- Search highlighting is computed once and cached
+- Mouse event throttling prevents excessive updates
+
+## Keybinding Reference
+
+<AccordionGroup>
+  <Accordion title="Basic Movement">
+    - `h`/`j`/`k`/`l` - Left/Down/Up/Right
+    - Arrow keys - Same as hjkl
+    - `w`/`b`/`e` - Word forward/backward/end
+    - `W`/`B`/`E` - WORD forward/backward/end
+  </Accordion>
+  
+  <Accordion title="Line Navigation">
+    - `0` - Start of line
+    - `^` - First non-blank
+    - `$` - End of line
+  </Accordion>
+  
+  <Accordion title="File Navigation">
+    - `gg` - Top of scrollback
+    - `G` - Bottom (live output)
+    - `{number}G` - Jump to line number
+  </Accordion>
+  
+  <Accordion title="Screen Navigation">
+    - `Ctrl+U` - Half page up
+    - `Ctrl+D` - Half page down
+    - `Ctrl+B` - Full page up
+    - `Ctrl+F` - Full page down
+    - `{` / `}` - Previous/next paragraph
+  </Accordion>
+  
+  <Accordion title="Character Search">
+    - `f{char}` - Find next char
+    - `F{char}` - Find previous char
+    - `t{char}` - Till (before) next char
+    - `T{char}` - Till (after) previous char
+    - `;` - Repeat last search
+    - `,` - Repeat opposite direction
+  </Accordion>
+  
+  <Accordion title="Search">
+    - `/` - Search forward
+    - `?` - Search backward
+    - `n` - Next match
+    - `N` - Previous match
+    - `Ctrl+L` - Clear highlights
+  </Accordion>
+  
+  <Accordion title="Visual Selection">
+    - `v` - Visual character mode
+    - `V` - Visual line mode
+    - `y` or `c` - Yank (copy) selection
+    - `Esc` or `q` - Exit visual mode
+  </Accordion>
+  
+  <Accordion title="Other">
+    - `%` - Jump to matching bracket
+    - `i` - Exit to terminal mode
+    - `q` or `Esc` - Exit copy mode
+  </Accordion>
+</AccordionGroup>
+
+## Troubleshooting
+
+### Can't Enter Copy Mode
+
+**Cause**: No terminal window focused.
+
+**Solution**: Make sure you're in Window Management Mode and a window is focused. Press `Esc` to ensure you're in Window Management Mode, then try `Ctrl+B [`.
+
+### Search Not Finding Text
+
+**Cause 1**: Text is outside scrollback buffer (older than 10,000 lines).
+
+**Solution**: Increase scrollback buffer size (see [Configuration](#scrollback-buffer-configuration)).
+
+**Cause 2**: Search is case-sensitive.
+
+**Solution**: Use lowercase search or regex patterns like `/[Ee]rror`.
+
+### Copied Text Not in Clipboard
+
+**Cause**: System clipboard integration depends on terminal emulator.
+
+**Solution**: Ensure your terminal supports OSC 52 escape sequences for clipboard access. Most modern terminals (kitty, Alacritty, iTerm2, WezTerm) support this.
+
+### Copy Mode Slow with Large Buffer
+
+**Cause**: 10,000+ line buffer with complex styling.
+
+**Solution**: Reduce scrollback buffer size for better performance:
+```bash
+tuios --scrollback-lines 5000
+```
+
+### Mouse Selection Not Working
+
+**Cause**: Mouse mode disabled in terminal.
+
+**Solution**: TUIOS requires terminal mouse mode. Most modern terminals enable this by default. Check your terminal's settings.
+
+## Related Documentation
+
+- [Keybindings](/cli/keybindings) - Complete keybinding reference
+- [Configuration](/configuration/overview) - Customize scrollback buffer size
+- [Sessions](/features/sessions) - Scrollback persists in daemon mode
+
+## Comparison with Other Tools
+
+### Copy Mode vs. tmux Copy Mode
+
+TUIOS copy mode is inspired by tmux but includes:
+- **Larger default buffer** (10,000 vs tmux's 2,000)
+- **Regex search** built-in
+- **Mouse support** for visual selection
+- **Per-window scrollback** (not shared across panes)
+
+### Copy Mode vs. less/more
+
+TUIOS copy mode provides:
+- **Vim-style navigation** (not just arrow keys)
+- **Visual selection** for copying
+- **Persistent across commands** (doesn't clear when command exits)
+- **Integrated with window manager** (no separate pager process)
