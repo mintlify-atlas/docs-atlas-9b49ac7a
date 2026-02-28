@@ -1,0 +1,132 @@
+{
+  "projectType": "cli-tool",
+  "projectName": "TUIOS",
+  "projectDescription": "Terminal-based window manager for managing multiple terminal sessions with workspaces, tiling, and automation",
+  "theme": "aspen",
+  "primaryColor": "#7C3AED",
+  "lightColor": "#A78BFA",
+  "darkColor": "#5B21B6",
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Documentation",
+        "groups": [
+          {
+            "group": "Get Started",
+            "pages": [
+              "introduction",
+              "installation",
+              "quickstart"
+            ]
+          },
+          {
+            "group": "Core Features",
+            "pages": [
+              "features/workspaces",
+              "features/tiling",
+              "features/copy-mode",
+              "features/sessions"
+            ]
+          },
+          {
+            "group": "Advanced Features",
+            "pages": [
+              "advanced/tape-scripting",
+              "advanced/tape-recording",
+              "advanced/ssh-server",
+              "advanced/web-terminal",
+              "advanced/showkeys"
+            ]
+          },
+          {
+            "group": "Configuration",
+            "pages": [
+              "configuration/overview",
+              "configuration/keybindings",
+              "configuration/themes",
+              "configuration/settings"
+            ]
+          },
+          {
+            "group": "Guides",
+            "pages": [
+              "guides/daemon-mode",
+              "guides/remote-control",
+              "guides/library-usage"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "CLI Reference",
+        "groups": [
+          {
+            "group": "Commands",
+            "pages": [
+              "cli/main-commands",
+              "cli/session-management",
+              "cli/tape-commands",
+              "cli/remote-commands",
+              "cli/config-commands"
+            ]
+          },
+          {
+            "group": "Reference",
+            "pages": [
+              "cli/flags",
+              "cli/keybindings",
+              "cli/tape-syntax"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Development",
+        "groups": [
+          {
+            "group": "Architecture",
+            "pages": [
+              "development/architecture",
+              "development/components",
+              "development/performance"
+            ]
+          },
+          {
+            "group": "Contributing",
+            "pages": [
+              "development/contributing",
+              "development/building",
+              "development/testing"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "keyFeatures": [
+    "Terminal multiplexer with 9 independent workspaces",
+    "BSP tiling with preselection and manual split control",
+    "Vim-style copy mode with 10,000 line scrollback",
+    "Tape scripting DSL for automation and CI/CD",
+    "Session persistence with daemon mode (attach/detach)",
+    "SSH server mode for remote terminal multiplexing",
+    "Web terminal mode with WebGL rendering",
+    "Customizable keybindings via TOML configuration",
+    "Mouse support with drag, resize, and click interactions",
+    "Built with Bubble Tea v2 and Lipgloss v2"
+  ],
+  "publicApiSurface": [
+    "tuios - Launch interactive terminal manager",
+    "tuios new [session] - Create persistent session",
+    "tuios attach [session] - Attach to session",
+    "tuios ls - List sessions",
+    "tuios ssh - Run SSH server",
+    "tuios tape play <file> - Run tape automation",
+    "tuios config edit - Edit configuration",
+    "tuios keybinds list - View keybindings",
+    "tuios send-keys <keys> - Send keys to session",
+    "tuios run-command <cmd> - Execute remote commands",
+    "tuios list-windows - List windows in session",
+    "tuios-web - Web terminal server binary"
+  ]
+}
